@@ -1,0 +1,28 @@
+[project]
+name = "mobile-starter"
+version = "0.0.1"
+description = "Mobile app starter - one Jac source, iOS + Android + web"
+entry-point = "main.jac"
+kind = "web-app"
+client_kind = "mobui"
+
+[client]
+
+[byllm]
+[byllm.model]
+default_model = "${LLM_MODEL:-gpt-4o-mini}"
+api_key = "${OPENAI_API_KEY:-}"
+
+
+[dependencies]
+[dependencies.npm]
+react = "^18.2.0"
+react-dom = "^18.2.0"
+react-native-web = "^0.19.13"
+
+[jacpack]
+name = 'tyyli-onboarding-flow'
+description = 'Jac IDE snapshot for tyyli-onboarding-flow'
+
+[jachammer]
+project_id = "prj_c5d6ee25fe9d4054869766c77f587db3"
