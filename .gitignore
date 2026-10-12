@@ -1,0 +1,6 @@
+.jac/
+dist/
+uploads/
+.env
+.env.*
+!.env.example
