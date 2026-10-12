@@ -1,10 +1,10 @@
 import from "@jac/mobui" { StyleSheet }
 
-glob:pub S: dict = {"xs": 5, "sm": 9, "md": 14, "lg": 20, "xl": 28},
-     R: dict = {"sm": 10, "md": 16, "lg": 24, "pill": 999},
-     F: dict = {"xs": 11, "sm": 13, "md": 15, "lg": 18, "xl": 29, "hero": 36};
+glob:pub S: dict[str, int] = {"xs": 5, "sm": 9, "md": 14, "lg": 20, "xl": 28},
+     R: dict[str, int] = {"sm": 10, "md": 16, "lg": 24, "pill": 999},
+     F: dict[str, int] = {"xs": 11, "sm": 13, "md": 15, "lg": 18, "xl": 29, "hero": 36};
 
-def:pub buildStyles(C: dict) -> any {
+def:pub buildStyles(C: dict[str, str]) -> any {
     return StyleSheet.create({
         "screen": {"flex": 1, "backgroundColor": C["bg"]},
         "page": {"paddingHorizontal": 24, "paddingTop": 22, "paddingBottom": 32, "gap": 20, "maxWidth": 520, "width": "100%", "alignSelf": "center"},
