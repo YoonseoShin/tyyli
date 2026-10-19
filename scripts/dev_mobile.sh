@@ -75,5 +75,5 @@ echo "  Expo Go: exp://${LAN_HOST}:${METRO_PORT}"
 echo "  API:     ${API_URL}"
 echo ""
 
-cd "${RN_DIR}"
-./node_modules/.bin/expo start --port "${METRO_PORT}" --clear --lan
+cd "${PROJECT_DIR}"
+JAC_RN_METRO_PORT="${METRO_PORT}" jac run --no-takeover scripts/start_metro.jac
