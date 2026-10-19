@@ -120,7 +120,9 @@ async def:pub load_local_data -> LocalUserData {
     payload: dict[str, any] = await load_payload();
     profile: StyleProfile | None = None;
     raw_profile = payload.get("profile");
-    if isinstance(raw_profile, dict) {
+    # Web storage returns plain JSON objects, which `isinstance(x, dict)` rejects
+    # in the client runtime, so check for presence instead.
+    if raw_profile is not None {
         profile = _profile_from_payload(raw_profile as dict[str, any]);
     }
 
@@ -128,7 +130,7 @@ async def:pub load_local_data -> LocalUserData {
     raw_clothes = payload.get("clothes", []);
     if isinstance(raw_clothes, list) {
         for raw_item in raw_clothes {
-            if isinstance(raw_item, dict) {
+            if raw_item is not None {
                 clothes.append(_clothing_from_payload(raw_item as dict[str, any]));
             }
         }
@@ -136,7 +138,7 @@ async def:pub load_local_data -> LocalUserData {
 
     latest_outfit: OutfitRecommendation | None = None;
     raw_outfit = payload.get("latest_outfit");
-    if isinstance(raw_outfit, dict) {
+    if raw_outfit is not None {
         latest_outfit = _outfit_from_payload(raw_outfit as dict[str, any]);
     }
     return LocalUserData(

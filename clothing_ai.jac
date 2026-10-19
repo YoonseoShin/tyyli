@@ -136,19 +136,46 @@ def _send_gemini_request(payload: dict[str, any], api_key: str) -> dict[str, any
 }
 
 
+def _dev_setting(name: str, fallback: str = "") -> str {
+    # Shell variables win. Otherwise read the gitignored `.env` in the folder the
+    # server was started from, so developers don't have to export keys each time.
+    value = os.environ.get(name, "").strip();
+    if value {
+        return value;
+    }
+    env_path = os.path.join(os.getcwd(), ".env");
+    if os.path.exists(env_path) {
+        with open(env_path, encoding="utf-8") as env_file {
+            for line in env_file {
+                stripped = line.strip();
+                if not stripped or stripped.startswith("#") or "=" not in stripped {
+                    continue;
+                }
+                key = stripped.split("=", 1)[0].strip();
+                if key == name {
+                    found = stripped.split("=", 1)[1].strip().strip('"').strip("'");
+                    if found {
+                        return found;
+                    }
+                }
+            }
+        }
+    }
+    return fallback;
+}
+
+
 def:pub analyze_clothing_image(image_data: str) -> ClothingAnalysis {
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip();
+    api_key = _dev_setting("GEMINI_API_KEY");
     if not api_key {
         raise ValueError(
             "GEMINI_API_KEY is not set on the Jac server. "
-            "Restart jac run --dev after exporting the key."
+            "Add it to .env in the project folder (see .env.example) or export it, then restart the server."
         );
     }
 
-    model = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash").strip();
-    fallback_model = os.environ.get(
-        "GEMINI_FALLBACK_MODEL", "gemini-3.6-flash"
-    ).strip();
+    model = _dev_setting("GEMINI_MODEL", "gemini-3.6-flash");
+    fallback_model = _dev_setting("GEMINI_FALLBACK_MODEL", "gemini-3.8-flash");
     payload = {
         "model": model,
         "input": [
