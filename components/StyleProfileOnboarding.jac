@@ -1,5 +1,6 @@
 """Tyyli — a thoughtful, personal style discovery."""
 import from "@jac/mobui" { View, Text, Pressable, TextInput, ScrollView, useWindowDimensions }
+import from ..storage { StyleProfile }
 import from ..theme { buildStyles }
 
 glob C: dict[str, str] = {
@@ -16,7 +17,7 @@ glob options: dict[str, list[str]] = {
     "zodiac": ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
 };
 
-def:pub StyleProfileOnboarding -> JsxElement {
+def:pub StyleProfileOnboarding(on_finish: Callable[[StyleProfile], None] | None = None) -> JsxElement {
     has step: int = 0,
         selected_styles: list[str] = [],
         selected_colors: list[str] = [],
@@ -105,7 +106,17 @@ def:pub StyleProfileOnboarding -> JsxElement {
             {step > 0 and <Pressable style={styles.backButton} onPress={lambda { go_back(); }}><Text style={styles.backText}>Back</Text></Pressable>}
             {step == 0 and <View style={styles.backButton}><Text style={styles.timeText}>PERSONALIZED, NOT PRESCRIBED</Text></View>}
             <Pressable style={styles.primaryButton} onPress={lambda {
-                if step == 7 { step = 0; selected_styles = []; selected_colors = []; selected_occasions = []; inspiration = ""; mbti = ""; zodiac = ""; }
+                if step == 7 and on_finish {
+                    on_finish(StyleProfile(
+                        preferred_styles=selected_styles,
+                        preferred_colors=selected_colors,
+                        occasions=selected_occasions,
+                        inspiration=inspiration,
+                        mbti=mbti,
+                        zodiac=zodiac
+                    ));
+                }
+                elif step == 7 { step = 0; selected_styles = []; selected_colors = []; selected_occasions = []; inspiration = ""; mbti = ""; zodiac = ""; }
                 else { go_next(); }
             }}>
                 <Text style={styles.primaryText}>{"Start styling" if step == 7 else "Let's go" if step == 0 else "Continue"}</Text>

@@ -7,6 +7,11 @@ kind = "mobile"
 
 [client]
 
+# App-side helpers (placeholder weather/calendar/outfits/chat, closet actions)
+# run on the device. Pinning keeps their plain functions in the client bundle.
+[placement.pins]
+"services.*" = "client"
+
 [dependencies]
 [dependencies.npm]
 react = "^19.2.0"
