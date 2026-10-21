@@ -55,11 +55,21 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+# The API server compiles its modules on start; ~30-60 s inside Docker on an
+# Intel Mac, so allow up to 3 minutes before giving up.
 SERVER_READY=false
-for _ in {1..40}; do
+echo "Waiting for the Jac API server on port ${API_PORT}..."
+for i in {1..360}; do
   if curl -fsS "http://127.0.0.1:${API_PORT}/openapi.json" >/dev/null 2>&1; then
     SERVER_READY=true
     break
+  fi
+  if ! kill -0 "${API_PID}" >/dev/null 2>&1; then
+    echo "The Jac API server exited before becoming ready (see the output above)."
+    exit 1
+  fi
+  if (( i % 20 == 0 )); then
+    echo "  still starting ($(( i / 2 )) s)..."
   fi
   sleep 0.5
 done

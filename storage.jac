@@ -33,6 +33,11 @@ obj:pub ClothingItem {
         image_path: str = "",
         source_image_url: str = "",
         source_product_url: str = "",
+        brand: str = "",
+        price: str = "",
+        original_image_path: str = "",
+        lookup_status: str = "",
+        lookup_note: str = "",
         created_at: str = "";
 }
 
@@ -102,6 +107,11 @@ def _clothing_from_payload(payload: dict[str, any]) -> ClothingItem {
         image_path=_string_value(payload, "image_path"),
         source_image_url=_string_value(payload, "source_image_url"),
         source_product_url=_string_value(payload, "source_product_url"),
+        brand=_string_value(payload, "brand"),
+        price=_string_value(payload, "price"),
+        original_image_path=_string_value(payload, "original_image_path"),
+        lookup_status=_string_value(payload, "lookup_status"),
+        lookup_note=_string_value(payload, "lookup_note"),
         created_at=_string_value(payload, "created_at")
     );
 }
@@ -177,6 +187,11 @@ async def:pub save_clothing_item(item: ClothingItem) -> LocalUserData {
         "image_path": item.image_path,
         "source_image_url": item.source_image_url,
         "source_product_url": item.source_product_url,
+        "brand": item.brand,
+        "price": item.price,
+        "original_image_path": item.original_image_path,
+        "lookup_status": item.lookup_status,
+        "lookup_note": item.lookup_note,
         "created_at": item.created_at
     });
     return await load_local_data();

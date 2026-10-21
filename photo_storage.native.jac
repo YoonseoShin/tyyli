@@ -6,7 +6,8 @@ import from "expo-file-system/legacy" {
     downloadAsync,
     getInfoAsync,
     makeDirectoryAsync,
-    readAsStringAsync
+    readAsStringAsync,
+    writeAsStringAsync
 }
 import from "expo-image-manipulator" { manipulateAsync }
 
@@ -94,7 +95,13 @@ async def:pub download_clothing_photo(
     download_uri = documentDirectory + "images/" + clothing_item_id + "-source" + file_extension(source_url.lower());
     await deleteAsync(destination_uri, {"idempotent": True});
     await deleteAsync(download_uri, {"idempotent": True});
-    result = await downloadAsync(source_url, download_uri);
+    # Browser-like headers: shop CDNs refuse anonymous downloads.
+    result = await downloadAsync(source_url, download_uri, {
+        "headers": {
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+            "Accept": "image/webp,image/avif,image/*,*/*;q=0.8"
+        }
+    });
     if result.status < 200 or result.status >= 300 {
         await deleteAsync(download_uri, {"idempotent": True});
         raise Exception("Image download failed with HTTP " + str(result.status));
@@ -147,4 +154,105 @@ async def:pub describe_photo_storage(image_path: str) -> str {
         return "Missing file: " + image_path;
     }
     return "App storage: " + image_path + " (" + str(int(info.size / 1024)) + " KB)";
+}
+
+
+async def:pub read_clothing_image_data_for_search(image_path: str) -> str {
+    # Reverse image search uploads must stay under 500 KB, so send a smaller JPEG.
+    if not image_path or image_path.startswith("http") or image_path.startswith("data:") {
+        return image_path;
+    }
+    optimized = await manipulateAsync(
+        resolve_clothing_image_uri(image_path),
+        [{"resize": {"width": 900}}],
+        {"compress": 0.6, "format": "jpeg", "base64": True}
+    );
+    base64_data = optimized.base64 or "";
+    await deleteAsync(optimized.uri, {"idempotent": True});
+    if not base64_data {
+        return await read_clothing_image_data(image_path);
+    }
+    return "data:image/jpeg;base64," + base64_data;
+}
+
+
+async def:pub save_clothing_photo_data(data_url: str, clothing_item_id: str) -> str {
+    # Stores an image data URL (e.g. a product photo fetched by the server) as the
+    # item's JPEG in app storage and returns the relative path.
+    if documentDirectory is None {
+        raise Exception("App document storage is unavailable.");
+    }
+    separator = data_url.find(",");
+    if not data_url.startswith("data:image/") or separator < 0 {
+        raise Exception("The product image data is incomplete.");
+    }
+    mime_type = data_url[5:separator].split(";")[0];
+    base64_data = data_url[separator + 1:];
+    relative_path = "images/" + clothing_item_id + ".jpg";
+    images_directory = documentDirectory + "images/";
+    await makeDirectoryAsync(images_directory, {"intermediates": True});
+    destination_uri = documentDirectory + relative_path;
+    download_uri = documentDirectory + "images/" + clothing_item_id + "-source" + file_extension(mime_type);
+    await deleteAsync(destination_uri, {"idempotent": True});
+    await deleteAsync(download_uri, {"idempotent": True});
+    await writeAsStringAsync(download_uri, base64_data, {"encoding": "base64"});
+    try {
+        await copy_optimized_photo(download_uri, destination_uri, 0, 0);
+    } finally {
+        await deleteAsync(download_uri, {"idempotent": True});
+    }
+    return relative_path;
+}
+
+
+async def:pub get_clothing_image_size(image_path: str) -> dict[str, int] {
+    # Pixel size of a stored photo (used to map a crop box drawn on screen).
+    probe = await manipulateAsync(resolve_clothing_image_uri(image_path), [], {"compress": 0.1, "format": "jpeg"});
+    size = {"width": int(probe.width or 0), "height": int(probe.height or 0)};
+    await deleteAsync(probe.uri, {"idempotent": True});
+    return size;
+}
+
+
+async def:pub crop_clothing_image_for_search(
+    image_path: str,
+    left: float,
+    top: float,
+    width: float,
+    height: float
+) -> str {
+    # Crops a stored photo (box given as fractions 0..1 of the image) and returns
+    # a small JPEG data URL for reverse image search.
+    size = await get_clothing_image_size(image_path);
+    if size["width"] <= 0 or size["height"] <= 0 {
+        return await read_clothing_image_data_for_search(image_path);
+    }
+    x0 = Math.max(0.0, Math.min(0.98, left));
+    y0 = Math.max(0.0, Math.min(0.98, top));
+    w = Math.max(0.02, Math.min(1.0 - x0, width));
+    h = Math.max(0.02, Math.min(1.0 - y0, height));
+    crop_width = int(w * size["width"]);
+    crop_height = int(h * size["height"]);
+    actions: list[dict[str, any]] = [{
+        "crop": {
+            "originX": int(x0 * size["width"]),
+            "originY": int(y0 * size["height"]),
+            "width": crop_width,
+            "height": crop_height
+        }
+    }];
+    if crop_width > 900 {
+        actions.append({"resize": {"width": 900}});
+    }
+    optimized = await manipulateAsync(
+        resolve_clothing_image_uri(image_path),
+        actions,
+        {"compress": 0.6, "format": "jpeg", "base64": True}
+    );
+    base64_data = optimized.base64 or "";
+    await deleteAsync(optimized.uri, {"idempotent": True});
+    if not base64_data {
+        return await read_clothing_image_data_for_search(image_path);
+    }
+    return "data:image/jpeg;base64," + base64_data;
 }

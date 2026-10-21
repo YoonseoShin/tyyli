@@ -4,3 +4,9 @@ uploads/
 .env
 .env.*
 !.env.example
+
+# scan spike artifacts and sample photos
+spikes/output/
+spikes/samples/
+.DS_Store
+spikes/__pycache__/

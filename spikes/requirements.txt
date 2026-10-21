@@ -1,0 +1,19 @@
+# Step 1 scan spike. Install into the repo venv:
+#   source .venv/bin/activate && pip install -r spikes/requirements.txt
+#
+# Intel Mac note: rembg pulls pymatting -> numba -> llvmlite, and the newest
+# llvmlite has no x86_64 macOS wheel (pip tries to build it and fails). Pin an
+# older numba/numpy that still ship wheels, then install rembg/pymatting without
+# dependency resolution:
+#   pip install "llvmlite<0.45" "numba<0.62" "numpy>=2.0,<2.3"
+#   pip install pooch scikit-image scipy jsonschema tqdm onnxruntime
+#   pip install --no-deps "pymatting>=1.1.14" rembg==2.0.85
+anthropic>=1.13.0
+serpapi>=1.1.2
+requests
+beautifulsoup4
+python-dotenv
+pillow
+pydantic
+onnxruntime
+pillow-heif>=1.0  # open iPhone HEIC photos
