@@ -40,5 +40,6 @@ obj:pub Outfit {
 
 obj:pub ChatMessage {
     has role: str,
-        text: str;
+        text: str,
+        clothing_item_ids: list[str] = [];
 }

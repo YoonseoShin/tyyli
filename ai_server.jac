@@ -5,3 +5,4 @@ an HTTP server available for the generated Jac RPC call.
 """
 import from .clothing_ai { analyze_clothing_image }
 import from .product_lookup { fetch_product_image, find_product_online, search_product_images }
+import from .stylist_ai { chat_with_stylist }

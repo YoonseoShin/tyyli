@@ -72,7 +72,7 @@ def:pub AppShell -> JsxElement {
         messages = history;
         sending = True;
         try {
-            reply = await send_chat_message(history, data.clothes);
+            reply = await send_chat_message(history, data.clothes, data.profile, weather, events);
             messages = history + [reply];
         } except Exception as e {
             messages = history + [ChatMessage(role="assistant", text="Something went wrong: " + str(e))];
@@ -116,7 +116,7 @@ def:pub AppShell -> JsxElement {
             {(<HomeScreen weather={weather} today_events={today_events} today_outfit={today_outfit} clothes={data.clothes} on_navigate={lambda (t: str) { navigate(t); }}/>) if tab == "home" else None}
             {(<ClosetScreen clothes={data.clothes} on_changed={lambda { reload(); }}/>) if tab == "closet" else None}
             {(<OutfitsScreen today={today_outfit} week={week} clothes={data.clothes}/>) if tab == "outfits" else None}
-            {(<ChatScreen messages={messages} sending={sending} on_send={lambda (t: str) { send_message(t); }}/>) if tab == "chat" else None}
+            {(<ChatScreen messages={messages} sending={sending} clothes={data.clothes} on_send={lambda (t: str) { send_message(t); }}/>) if tab == "chat" else None}
             {(<ProfileScreen profile={data.profile} clothes_count={len(data.clothes)} on_edit_profile={lambda { route = "onboarding"; }} on_open_storage_test={lambda { route = "storage_test"; }}/>) if tab == "profile" else None}
         </View>
         <TabBar active={tab} on_select={lambda (t: str) { navigate(t); }}/>
