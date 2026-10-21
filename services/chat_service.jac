@@ -51,9 +51,13 @@ def:pub build_stylist_context(
             ("top size " + profile.top_size) if profile.top_size else "",
             ("bottom size " + profile.bottom_size) if profile.bottom_size else "",
             ("shoe size " + profile.shoe_size) if profile.shoe_size else "",
-            ("body shape " + profile.body_shape) if profile.body_shape else ""
+            ("body shape " + profile.body_shape) if profile.body_shape else "",
+            ("bust " + profile.bust) if profile.bust else "",
+            ("waist " + profile.waist) if profile.waist else "",
+            ("hips " + profile.hips) if profile.hips else ""
         ] if v];
         if fit { lines.append("Fit: " + "; ".join(fit) + "."); }
+        if profile.brand_sizes { lines.append("Sizes the user wears at specific brands (use these to judge sizing elsewhere): " + "; ".join(profile.brand_sizes) + "."); }
         if profile.favorite_stores { lines.append("Favourite stores: " + _join(profile.favorite_stores) + "."); }
         if profile.favorite_brands { lines.append("Favourite brands: " + _join(profile.favorite_brands) + "."); }
     }

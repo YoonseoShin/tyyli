@@ -19,9 +19,16 @@ def:pub ChatScreen(
     messages: list[ChatMessage],
     sending: bool,
     clothes: list[ClothingItem],
-    on_send: Callable[[str], None]
+    on_send: Callable[[str], None],
+    on_edit: Callable[[int], None] | None = None
 ) -> JsxElement {
     has draft: str = "";
+
+    def start_edit(index: int, text: str) {
+        if sending { return; }
+        draft = text;
+        if on_edit { on_edit(index); }
+    }
 
     def submit {
         text = draft.strip();
@@ -57,6 +64,11 @@ def:pub ChatScreen(
                     <View style={ui.bubbleUser if m.role == "user" else ui.bubbleBot}>
                         <Text style={ui.bubbleUserText if m.role == "user" else ui.body}>{m.text}</Text>
                     </View>
+                    {(
+                        <Pressable style={{"alignSelf": "flex-end"}} onPress={lambda { start_edit(n, m.text); }}>
+                            <Text style={ui.link}>Edit & resend</Text>
+                        </Pressable>
+                    ) if m.role == "user" and not sending else None}
                     {(
                         <ScrollView horizontal={True} showsHorizontalScrollIndicator={False}>
                             <View style={ui.row}>

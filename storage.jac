@@ -23,6 +23,12 @@ obj:pub StyleProfile {
         bottom_size: str = "",
         shoe_size: str = "",
         body_shape: str = "",
+        units: str = "imperial",
+        bust: str = "",
+        waist: str = "",
+        hips: str = "",
+        brand_sizes: list[str] = [],
+        temperature_unit: str = "F",
         favorite_stores: list[str] = [],
         favorite_brands: list[str] = [];
 }
@@ -104,6 +110,12 @@ def _profile_from_payload(payload: dict[str, any]) -> StyleProfile {
         bottom_size=_string_value(payload, "bottom_size"),
         shoe_size=_string_value(payload, "shoe_size"),
         body_shape=_string_value(payload, "body_shape"),
+        units=_string_value(payload, "units", "imperial") or "imperial",
+        bust=_string_value(payload, "bust"),
+        waist=_string_value(payload, "waist"),
+        hips=_string_value(payload, "hips"),
+        brand_sizes=_string_list(payload, "brand_sizes"),
+        temperature_unit=_string_value(payload, "temperature_unit", "F") or "F",
         favorite_stores=_string_list(payload, "favorite_stores"),
         favorite_brands=_string_list(payload, "favorite_brands")
     );
@@ -192,6 +204,12 @@ async def:pub save_profile(profile: StyleProfile) -> LocalUserData {
         "bottom_size": profile.bottom_size,
         "shoe_size": profile.shoe_size,
         "body_shape": profile.body_shape,
+        "units": profile.units,
+        "bust": profile.bust,
+        "waist": profile.waist,
+        "hips": profile.hips,
+        "brand_sizes": profile.brand_sizes,
+        "temperature_unit": profile.temperature_unit,
         "favorite_stores": profile.favorite_stores,
         "favorite_brands": profile.favorite_brands
     });

@@ -70,6 +70,20 @@ def:pub AppShell -> JsxElement {
         }
     }
 
+    async def toggle_temperature_unit {
+        if data.profile is None { return; }
+        profile = data.profile;
+        profile.temperature_unit = "C" if profile.temperature_unit != "C" else "F";
+        data = await save_profile(profile);
+    }
+
+    # The user wants to fix an earlier message: drop it and everything after it;
+    # the chat screen puts its text back into the input box.
+    def edit_message(index: int) {
+        if sending { return; }
+        messages = messages[:index];
+    }
+
     async def finish_onboarding(profile: StyleProfile) {
         data = await save_profile(profile);
         route = "";
@@ -122,10 +136,10 @@ def:pub AppShell -> JsxElement {
     return <View style={[ui.app, {"height": viewport.height - keyboard_height}]}>
         {(<Text style={[ui.muted, {"padding": 16}]}>{load_error}</Text>) if load_error else None}
         <View style={ui.flex1}>
-            {(<HomeScreen weather={weather} today_events={today_events} today_outfit={today_outfit} clothes={data.clothes} on_navigate={lambda (t: str) { navigate(t); }}/>) if tab == "home" else None}
+            {(<HomeScreen weather={weather} today_events={today_events} today_outfit={today_outfit} clothes={data.clothes} on_navigate={lambda (t: str) { navigate(t); }} temperature_unit={data.profile.temperature_unit if data.profile else "F"} on_toggle_unit={lambda { toggle_temperature_unit(); }}/>) if tab == "home" else None}
             {(<ClosetScreen clothes={data.clothes} on_changed={lambda { reload(); }}/>) if tab == "closet" else None}
             {(<OutfitsScreen today={today_outfit} week={week} clothes={data.clothes}/>) if tab == "outfits" else None}
-            {(<ChatScreen messages={messages} sending={sending} clothes={data.clothes} on_send={lambda (t: str) { send_message(t); }}/>) if tab == "chat" else None}
+            {(<ChatScreen messages={messages} sending={sending} clothes={data.clothes} on_send={lambda (t: str) { send_message(t); }} on_edit={lambda (i: int) { edit_message(i); }}/>) if tab == "chat" else None}
             {(<ProfileScreen profile={data.profile} clothes_count={len(data.clothes)} on_edit_profile={lambda { route = "onboarding"; }} on_open_storage_test={lambda { route = "storage_test"; }}/>) if tab == "profile" else None}
         </View>
         {(<TabBar active={tab} on_select={lambda (t: str) { navigate(t); }}/>) if keyboard_height <= 0 else None}

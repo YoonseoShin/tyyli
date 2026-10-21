@@ -32,6 +32,12 @@ async def initialize_backend -> any {
                 bottom_size TEXT NOT NULL DEFAULT '',
                 shoe_size TEXT NOT NULL DEFAULT '',
                 body_shape TEXT NOT NULL DEFAULT '',
+                units TEXT NOT NULL DEFAULT '',
+                bust TEXT NOT NULL DEFAULT '',
+                waist TEXT NOT NULL DEFAULT '',
+                hips TEXT NOT NULL DEFAULT '',
+                brand_sizes TEXT NOT NULL DEFAULT '[]',
+                temperature_unit TEXT NOT NULL DEFAULT '',
                 favorite_stores TEXT NOT NULL DEFAULT '[]',
                 favorite_brands TEXT NOT NULL DEFAULT '[]'
             );
@@ -65,12 +71,12 @@ async def initialize_backend -> any {
         """);
         profile_columns = await backend_handle.getAllAsync("PRAGMA table_info(style_profile)");
         profile_column_names = [column["name"] for column in profile_columns];
-        for text_column in ["shop_section", "height", "weight", "top_size", "bottom_size", "shoe_size", "body_shape"] {
+        for text_column in ["shop_section", "height", "weight", "top_size", "bottom_size", "shoe_size", "body_shape", "units", "bust", "waist", "hips", "temperature_unit"] {
             if text_column not in profile_column_names {
                 await backend_handle.execAsync("ALTER TABLE style_profile ADD COLUMN " + text_column + " TEXT NOT NULL DEFAULT '';");
             }
         }
-        for list_column in ["favorite_stores", "favorite_brands"] {
+        for list_column in ["favorite_stores", "favorite_brands", "brand_sizes"] {
             if list_column not in profile_column_names {
                 await backend_handle.execAsync("ALTER TABLE style_profile ADD COLUMN " + list_column + " TEXT NOT NULL DEFAULT '[]';");
             }
@@ -123,6 +129,12 @@ async def:pub load_payload -> dict[str, any] {
         "bottom_size": profile_row["bottom_size"] or "",
         "shoe_size": profile_row["shoe_size"] or "",
         "body_shape": profile_row["body_shape"] or "",
+        "units": profile_row["units"] or "imperial",
+        "bust": profile_row["bust"] or "",
+        "waist": profile_row["waist"] or "",
+        "hips": profile_row["hips"] or "",
+        "brand_sizes": decode_json(profile_row["brand_sizes"] or "[]", []),
+        "temperature_unit": profile_row["temperature_unit"] or "F",
         "favorite_stores": decode_json(profile_row["favorite_stores"] or "[]", []),
         "favorite_brands": decode_json(profile_row["favorite_brands"] or "[]", [])
     };
@@ -162,10 +174,12 @@ async def:pub save_profile_payload(profile: dict[str, any]) {
         INSERT INTO style_profile (
             id, preferred_styles, preferred_colors, occasions, inspiration, mbti, zodiac,
             shop_section, height, weight, top_size, bottom_size, shoe_size, body_shape,
+            units, bust, waist, hips, brand_sizes, temperature_unit,
             favorite_stores, favorite_brands
         ) VALUES (
             1, $preferred_styles, $preferred_colors, $occasions, $inspiration, $mbti, $zodiac,
             $shop_section, $height, $weight, $top_size, $bottom_size, $shoe_size, $body_shape,
+            $units, $bust, $waist, $hips, $brand_sizes, $temperature_unit,
             $favorite_stores, $favorite_brands
         )
         ON CONFLICT(id) DO UPDATE SET
@@ -182,6 +196,12 @@ async def:pub save_profile_payload(profile: dict[str, any]) {
             bottom_size = excluded.bottom_size,
             shoe_size = excluded.shoe_size,
             body_shape = excluded.body_shape,
+            units = excluded.units,
+            bust = excluded.bust,
+            waist = excluded.waist,
+            hips = excluded.hips,
+            brand_sizes = excluded.brand_sizes,
+            temperature_unit = excluded.temperature_unit,
             favorite_stores = excluded.favorite_stores,
             favorite_brands = excluded.favorite_brands
     """, {
@@ -198,6 +218,12 @@ async def:pub save_profile_payload(profile: dict[str, any]) {
         "$bottom_size": profile.get("bottom_size", "") or "",
         "$shoe_size": profile.get("shoe_size", "") or "",
         "$body_shape": profile.get("body_shape", "") or "",
+        "$units": profile.get("units", "") or "imperial",
+        "$bust": profile.get("bust", "") or "",
+        "$waist": profile.get("waist", "") or "",
+        "$hips": profile.get("hips", "") or "",
+        "$brand_sizes": JSON.stringify(profile.get("brand_sizes", []) or []),
+        "$temperature_unit": profile.get("temperature_unit", "") or "F",
         "$favorite_stores": JSON.stringify(profile.get("favorite_stores", []) or []),
         "$favorite_brands": JSON.stringify(profile.get("favorite_brands", []) or [])
     });
