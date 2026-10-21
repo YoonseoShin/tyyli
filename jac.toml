@@ -4,6 +4,8 @@ version = "0.0.1"
 description = "Mobile app starter - one Jac source, iOS + Android + web"
 entry-point = "main"
 kind = "mobile"
+# JacHammer and jac start --scale run the pinned toolchain (the mobile target needs 0.37.x).
+jac-version = "0.37.25"
 
 [client]
 

@@ -40,6 +40,11 @@ async def initialize_backend -> any {
                 image_path TEXT NOT NULL,
                 source_image_url TEXT NOT NULL,
                 source_product_url TEXT NOT NULL,
+                brand TEXT NOT NULL DEFAULT '',
+                price TEXT NOT NULL DEFAULT '',
+                original_image_path TEXT NOT NULL DEFAULT '',
+                lookup_status TEXT NOT NULL DEFAULT '',
+                lookup_note TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL
             );
             CREATE TABLE IF NOT EXISTS latest_outfit (
@@ -56,6 +61,21 @@ async def initialize_backend -> any {
         }
         if "description" not in column_names {
             await backend_handle.execAsync("ALTER TABLE clothes ADD COLUMN description TEXT NOT NULL DEFAULT '';");
+        }
+        if "brand" not in column_names {
+            await backend_handle.execAsync("ALTER TABLE clothes ADD COLUMN brand TEXT NOT NULL DEFAULT '';");
+        }
+        if "price" not in column_names {
+            await backend_handle.execAsync("ALTER TABLE clothes ADD COLUMN price TEXT NOT NULL DEFAULT '';");
+        }
+        if "original_image_path" not in column_names {
+            await backend_handle.execAsync("ALTER TABLE clothes ADD COLUMN original_image_path TEXT NOT NULL DEFAULT '';");
+        }
+        if "lookup_status" not in column_names {
+            await backend_handle.execAsync("ALTER TABLE clothes ADD COLUMN lookup_status TEXT NOT NULL DEFAULT '';");
+        }
+        if "lookup_note" not in column_names {
+            await backend_handle.execAsync("ALTER TABLE clothes ADD COLUMN lookup_note TEXT NOT NULL DEFAULT '';");
         }
     }
     return backend_handle;
@@ -90,6 +110,11 @@ async def:pub load_payload -> dict[str, any] {
         "image_path": row["image_path"],
         "source_image_url": row["source_image_url"],
         "source_product_url": row["source_product_url"],
+        "brand": row["brand"],
+        "price": row["price"],
+        "original_image_path": row["original_image_path"],
+        "lookup_status": row["lookup_status"],
+        "lookup_note": row["lookup_note"],
         "created_at": row["created_at"]
     } for row in clothes_rows];
     latest_outfit = None if outfit_row is None else {
@@ -130,10 +155,12 @@ async def:pub save_clothing_payload(item: dict[str, any]) {
     await db.runAsync("""
         INSERT INTO clothes (
             id, name, category, colors, seasons, style_tags, occasions, warmth, waterproof,
-            description, image_path, source_image_url, source_product_url, created_at
+            description, image_path, source_image_url, source_product_url,
+            brand, price, original_image_path, lookup_status, lookup_note, created_at
         ) VALUES (
             $id, $name, $category, $colors, $seasons, $style_tags, $occasions, $warmth, $waterproof,
-            $description, $image_path, $source_image_url, $source_product_url, $created_at
+            $description, $image_path, $source_image_url, $source_product_url,
+            $brand, $price, $original_image_path, $lookup_status, $lookup_note, $created_at
         )
         ON CONFLICT(id) DO UPDATE SET
             name = excluded.name,
@@ -148,6 +175,11 @@ async def:pub save_clothing_payload(item: dict[str, any]) {
             image_path = excluded.image_path,
             source_image_url = excluded.source_image_url,
             source_product_url = excluded.source_product_url,
+            brand = excluded.brand,
+            price = excluded.price,
+            original_image_path = excluded.original_image_path,
+            lookup_status = excluded.lookup_status,
+            lookup_note = excluded.lookup_note,
             created_at = excluded.created_at
     """, {
         "$id": item["clothing_item_id"],
@@ -163,6 +195,11 @@ async def:pub save_clothing_payload(item: dict[str, any]) {
         "$image_path": item["image_path"],
         "$source_image_url": item["source_image_url"],
         "$source_product_url": item["source_product_url"],
+        "$brand": item.get("brand", "") or "",
+        "$price": item.get("price", "") or "",
+        "$original_image_path": item.get("original_image_path", "") or "",
+        "$lookup_status": item.get("lookup_status", "") or "",
+        "$lookup_note": item.get("lookup_note", "") or "",
         "$created_at": item["created_at"]
     });
 }
