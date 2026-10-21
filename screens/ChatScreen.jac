@@ -1,5 +1,5 @@
 """Chat with the styling assistant."""
-import from "@jac/mobui" { ActivityIndicator, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View }
+import from "@jac/mobui" { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, TextInput, View }
 import from ..components.Button { Button }
 import from ..models { ChatMessage }
 import from ..photo_storage { resolve_clothing_image_uri }
@@ -35,7 +35,8 @@ def:pub ChatScreen(
         return [by_id[i] for i in ids if i in by_id];
     }
 
-    return <KeyboardAvoidingView style={ui.screen} behavior={"padding" if Platform.OS == "ios" else "height"}>
+    # The app shell shrinks above the keyboard, so a plain full-height View is enough here.
+    return <View style={ui.screen}>
         <ScrollView style={ui.flex1} contentContainerStyle={ui.page} keyboardShouldPersistTaps="handled">
             <Text style={ui.title}>Stylist</Text>
             {(
@@ -109,5 +110,5 @@ def:pub ChatScreen(
             />
             <Button label="Send" grow={False} disabled={sending or not draft.strip()} busy={sending} on_press={lambda { submit(); }}/>
         </View>
-    </KeyboardAvoidingView>;
+    </View>;
 }

@@ -17,6 +17,7 @@ import from ..services.wardrobe_actions {
     find_online,
     find_online_cropped,
     is_analyzed,
+    listing_name,
     remove_item,
     search_online,
     use_candidate,
@@ -154,7 +155,7 @@ def:pub ClosetScreen(clothes: list[ClothingItem], on_changed: Callable[[], None]
         try {
             await use_candidate(item, cand);
             alt_candidates = [c for c in alt_candidates if c.image != cand.image];
-            status = "Using the picture from " + cand.source + ".";
+            status = "Using the picture from " + cand.source + (" and renamed the item to \"" + listing_name(cand.title, cand.source) + "\"." if cand.title else ".");
         } except Exception as e {
             status = "Could not use that picture: " + str(e);
         } finally {
