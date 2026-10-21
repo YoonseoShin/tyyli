@@ -1,5 +1,5 @@
 """Chat with the styling assistant."""
-import from "@jac/mobui" { ActivityIndicator, Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View }
+import from "@jac/mobui" { ActivityIndicator, Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View }
 import from ..components.Button { Button }
 import from ..models { ChatMessage }
 import from ..photo_storage { resolve_clothing_image_uri }
@@ -11,7 +11,7 @@ glob SUGGESTIONS: list[str] = [
     "What should I wear tonight?",
     "Put together an outfit for class tomorrow",
     "How do I style my favourite jacket?",
-    "What's missing from my closet?"
+    "What should I buy next?"
 ];
 
 
@@ -69,6 +69,24 @@ def:pub ChatScreen(
                             </View>
                         </ScrollView>
                     ) if m.role == "assistant" and m.clothing_item_ids else None}
+                    {(
+                        <View style={{"gap": 4}}>
+                            <Text style={ui.muted}>Shop the pieces (tap to open):</Text>
+                            <ScrollView horizontal={True} showsHorizontalScrollIndicator={False}>
+                                <View style={ui.row}>
+                                    {[
+                                        <Pressable key={p.link + p.title} style={[ui.card, {"width": 150, "padding": 8, "gap": 4}]} onPress={lambda { Linking.openURL(p.link); }}>
+                                            <Image source={{"uri": p.thumbnail}} style={{"width": "100%", "height": 120, "borderRadius": 10, "backgroundColor": C.soft}} resizeMode="contain"/>
+                                            <Text style={ui.body} numberOfLines={2}>{p.title}</Text>
+                                            <Text style={ui.muted} numberOfLines={1}>{(p.price + " · " if p.price else "") + p.source}</Text>
+                                            {(<Text style={ui.muted} numberOfLines={2}>{p.reason}</Text>) if p.reason else None}
+                                        </Pressable>
+                                        for p in m.shop_items
+                                    ]}
+                                </View>
+                            </ScrollView>
+                        </View>
+                    ) if m.role == "assistant" and m.shop_items else None}
                 </View>
                 for (n, m) in enumerate(messages)
             ]}

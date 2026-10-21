@@ -1,6 +1,6 @@
 """Styling chatbot: packs the closet, style profile, weather and plans into a
 context block and asks the Claude-backed server stylist for a reply."""
-import from ..models { CalendarEvent, ChatMessage, WeatherInfo }
+import from ..models { CalendarEvent, ChatMessage, ShopItem, WeatherInfo }
 import from ..storage { ClothingItem, StyleProfile }
 import from ..stylist_ai { StylistReply, StylistTurn, chat_with_stylist }
 import from .dates { date_key, day_label }
@@ -77,5 +77,18 @@ async def:pub send_chat_message(
     reply: StylistReply = await chat_with_stylist(turns, context);
     known = [c.clothing_item_id for c in clothes];
     ids = [i for i in reply.clothing_item_ids if i in known];
-    return ChatMessage(role="assistant", text=reply.text, clothing_item_ids=ids);
+    shop_items: list[ShopItem] = [];
+    for suggestion in reply.shopping {
+        for product in suggestion.products {
+            shop_items.append(ShopItem(
+                title=product.title,
+                price=product.price,
+                source=product.source,
+                link=product.link,
+                thumbnail=product.thumbnail,
+                reason=suggestion.reason or suggestion.query
+            ));
+        }
+    }
+    return ChatMessage(role="assistant", text=reply.text, clothing_item_ids=ids, shop_items=shop_items);
 }
