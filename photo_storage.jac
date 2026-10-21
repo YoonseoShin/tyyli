@@ -77,3 +77,33 @@ async def:pub describe_photo_storage(image_path: str) -> str {
     }
     return "Linked from " + image_path;
 }
+
+
+async def:pub read_clothing_image_data_for_search(image_path: str) -> str {
+    # Web stores photos as data URLs already; nothing to shrink here.
+    return image_path;
+}
+
+
+async def:pub save_clothing_photo_data(data_url: str, clothing_item_id: str) -> str {
+    # Web keeps images as data URLs.
+    return data_url;
+}
+
+
+async def:pub get_clothing_image_size(image_path: str) -> dict[str, int] {
+    # Unknown on web; the crop UI falls back to a square box.
+    return {"width": 0, "height": 0};
+}
+
+
+async def:pub crop_clothing_image_for_search(
+    image_path: str,
+    left: float,
+    top: float,
+    width: float,
+    height: float
+) -> str {
+    # The web test build has no image manipulator; search the whole photo.
+    return await read_clothing_image_data_for_search(image_path);
+}

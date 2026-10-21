@@ -1,0 +1,12 @@
+# Jac 0.37.x dev image for running the Tyyli mobile app from an Intel Mac.
+# Adds the tools scripts/dev_mobile.sh needs on top of the official image.
+FROM jaseci/jaclang:0.37.25
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends zsh lsof curl procps iproute2 \
+ && rm -rf /var/lib/apt/lists/*
+# The image ships its bundled bun without the executable bit; the jac user cannot fix it.
+RUN chmod 755 /opt/jac/state/rt/*/site/jaclang/client/_bun/bun
+USER jac
+WORKDIR /app
+ENTRYPOINT ["/bin/bash"]

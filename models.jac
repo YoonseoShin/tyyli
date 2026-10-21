@@ -38,7 +38,19 @@ obj:pub Outfit {
 }
 
 
+obj:pub ShopItem {
+    has title: str = "",
+        price: str = "",
+        source: str = "",
+        link: str = "",
+        thumbnail: str = "",
+        reason: str = "";
+}
+
+
 obj:pub ChatMessage {
     has role: str,
-        text: str;
+        text: str,
+        clothing_item_ids: list[str] = [],
+        shop_items: list[ShopItem] = [];
 }

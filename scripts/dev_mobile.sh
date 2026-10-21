@@ -40,6 +40,10 @@ API_URL="http://${LAN_HOST}:${API_PORT}"
 
 echo "Compiling the latest Jac mobile code..."
 cd "${PROJECT_DIR}"
+# The prepared-application cache goes stale when server-side modules change and
+# then fails the client compile with "runtime import(s) ... are not exported".
+# Clearing it costs a few seconds and avoids that.
+jac clean --cache --force >/dev/null 2>&1 || true
 jac run --no-takeover scripts/compile_mobile.jac
 
 printf 'globalThis.__JAC_API_BASE_URL__ = "%s";\n' "${API_URL}" > "${RN_DIR}/__jacApiBase.js"
@@ -55,11 +59,21 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+# The API server compiles its modules on start; ~30-60 s inside Docker on an
+# Intel Mac, so allow up to 3 minutes before giving up.
 SERVER_READY=false
-for _ in {1..40}; do
+echo "Waiting for the Jac API server on port ${API_PORT}..."
+for i in {1..360}; do
   if curl -fsS "http://127.0.0.1:${API_PORT}/openapi.json" >/dev/null 2>&1; then
     SERVER_READY=true
     break
+  fi
+  if ! kill -0 "${API_PID}" >/dev/null 2>&1; then
+    echo "The Jac API server exited before becoming ready (see the output above)."
+    exit 1
+  fi
+  if (( i % 20 == 0 )); then
+    echo "  still starting ($(( i / 2 )) s)..."
   fi
   sleep 0.5
 done
