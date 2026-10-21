@@ -52,7 +52,6 @@ def:pub build_stylist_context(
             ("bottom size " + profile.bottom_size) if profile.bottom_size else "",
             ("shoe size " + profile.shoe_size) if profile.shoe_size else "",
             ("body shape " + profile.body_shape) if profile.body_shape else "",
-            ("bust " + profile.bust) if profile.bust else "",
             ("waist " + profile.waist) if profile.waist else "",
             ("hips " + profile.hips) if profile.hips else ""
         ] if v];
