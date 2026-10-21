@@ -45,6 +45,7 @@ cd "${PROJECT_DIR}"
 # Clearing it costs a few seconds and avoids that.
 jac clean --cache --force >/dev/null 2>&1 || true
 jac run --no-takeover scripts/compile_mobile.jac
+"${SCRIPT_DIR}/check_mobile_js.sh"
 
 printf 'globalThis.__JAC_API_BASE_URL__ = "%s";\n' "${API_URL}" > "${RN_DIR}/__jacApiBase.js"
 

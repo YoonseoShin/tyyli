@@ -141,12 +141,12 @@ def:pub StyleProfileOnboarding(
         "Select the moments you want outfits for.", "A little more you in every outfit."
     ];
 
-    return <ScrollView style={[styles.screen, {height: viewport.height}]} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={True}>
+    return <ScrollView style={[styles.screen, {"height": viewport.height}]} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={True}>
         <View style={styles.topbar}>
             <Text style={styles.brand}>tyyli<Text style={styles.brandDot}>.</Text></Text>
             {(<Text style={styles.stepLabel}>{str(step) + " / " + str(TOTAL)}</Text>) if step > 0 and step < TOTAL else <Text style={styles.stepLabel}>YOUR PERSONAL STYLIST</Text>}
         </View>
-        {(<View style={styles.progressTrack}><View style={[styles.progressFill, {width: str(progress) + "%"}]}/></View>) if step > 0 and step < TOTAL else <View style={styles.progressPlaceholder}/>}
+        {(<View style={styles.progressTrack}><View style={[styles.progressFill, {"width": str(progress) + "%"}]}/></View>) if step > 0 and step < TOTAL else <View style={styles.progressPlaceholder}/>}
 
         {(<View style={styles.heroArt}>
             <View style={styles.artOrb}><Text style={styles.artSerif}>t</Text></View>
