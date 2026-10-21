@@ -15,7 +15,16 @@ obj:pub StyleProfile {
         occasions: list[str] = [],
         inspiration: str = "",
         mbti: str = "",
-        zodiac: str = "";
+        zodiac: str = "",
+        shop_section: str = "",
+        height: str = "",
+        weight: str = "",
+        top_size: str = "",
+        bottom_size: str = "",
+        shoe_size: str = "",
+        body_shape: str = "",
+        favorite_stores: list[str] = [],
+        favorite_brands: list[str] = [];
 }
 
 
@@ -87,7 +96,16 @@ def _profile_from_payload(payload: dict[str, any]) -> StyleProfile {
         occasions=_string_list(payload, "occasions"),
         inspiration=_string_value(payload, "inspiration"),
         mbti=_string_value(payload, "mbti"),
-        zodiac=_string_value(payload, "zodiac")
+        zodiac=_string_value(payload, "zodiac"),
+        shop_section=_string_value(payload, "shop_section"),
+        height=_string_value(payload, "height"),
+        weight=_string_value(payload, "weight"),
+        top_size=_string_value(payload, "top_size"),
+        bottom_size=_string_value(payload, "bottom_size"),
+        shoe_size=_string_value(payload, "shoe_size"),
+        body_shape=_string_value(payload, "body_shape"),
+        favorite_stores=_string_list(payload, "favorite_stores"),
+        favorite_brands=_string_list(payload, "favorite_brands")
     );
 }
 
@@ -166,7 +184,16 @@ async def:pub save_profile(profile: StyleProfile) -> LocalUserData {
         "occasions": profile.occasions,
         "inspiration": profile.inspiration,
         "mbti": profile.mbti,
-        "zodiac": profile.zodiac
+        "zodiac": profile.zodiac,
+        "shop_section": profile.shop_section,
+        "height": profile.height,
+        "weight": profile.weight,
+        "top_size": profile.top_size,
+        "bottom_size": profile.bottom_size,
+        "shoe_size": profile.shoe_size,
+        "body_shape": profile.body_shape,
+        "favorite_stores": profile.favorite_stores,
+        "favorite_brands": profile.favorite_brands
     });
     return await load_local_data();
 }

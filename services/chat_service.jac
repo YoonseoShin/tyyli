@@ -44,6 +44,18 @@ def:pub build_stylist_context(
             + (("; inspiration: " + profile.inspiration) if profile.inspiration else "")
             + (("; MBTI " + profile.mbti) if profile.mbti else "")
             + (("; zodiac " + profile.zodiac) if profile.zodiac else "") + ".");
+        fit = [v for v in [
+            ("shops the " + profile.shop_section + " section") if profile.shop_section else "",
+            ("height " + profile.height) if profile.height else "",
+            ("weight " + profile.weight) if profile.weight else "",
+            ("top size " + profile.top_size) if profile.top_size else "",
+            ("bottom size " + profile.bottom_size) if profile.bottom_size else "",
+            ("shoe size " + profile.shoe_size) if profile.shoe_size else "",
+            ("body shape " + profile.body_shape) if profile.body_shape else ""
+        ] if v];
+        if fit { lines.append("Fit: " + "; ".join(fit) + "."); }
+        if profile.favorite_stores { lines.append("Favourite stores: " + _join(profile.favorite_stores) + "."); }
+        if profile.favorite_brands { lines.append("Favourite brands: " + _join(profile.favorite_brands) + "."); }
     }
     if events {
         lines.append("Upcoming plans:");

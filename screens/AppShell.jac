@@ -97,7 +97,7 @@ def:pub AppShell -> JsxElement {
 
     # First launch (no saved profile) or "Redo style quiz".
     if data.profile is None or route == "onboarding" {
-        return <StyleProfileOnboarding on_finish={lambda (p: StyleProfile) { finish_onboarding(p); }}/>;
+        return <StyleProfileOnboarding initial={data.profile} on_finish={lambda (p: StyleProfile) { finish_onboarding(p); }}/>;
     }
 
     if route == "calendar" {

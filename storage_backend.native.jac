@@ -24,7 +24,16 @@ async def initialize_backend -> any {
                 occasions TEXT NOT NULL,
                 inspiration TEXT NOT NULL,
                 mbti TEXT NOT NULL,
-                zodiac TEXT NOT NULL
+                zodiac TEXT NOT NULL,
+                shop_section TEXT NOT NULL DEFAULT '',
+                height TEXT NOT NULL DEFAULT '',
+                weight TEXT NOT NULL DEFAULT '',
+                top_size TEXT NOT NULL DEFAULT '',
+                bottom_size TEXT NOT NULL DEFAULT '',
+                shoe_size TEXT NOT NULL DEFAULT '',
+                body_shape TEXT NOT NULL DEFAULT '',
+                favorite_stores TEXT NOT NULL DEFAULT '[]',
+                favorite_brands TEXT NOT NULL DEFAULT '[]'
             );
             CREATE TABLE IF NOT EXISTS clothes (
                 id TEXT PRIMARY KEY NOT NULL,
@@ -54,6 +63,18 @@ async def initialize_backend -> any {
                 created_at TEXT NOT NULL
             );
         """);
+        profile_columns = await backend_handle.getAllAsync("PRAGMA table_info(style_profile)");
+        profile_column_names = [column["name"] for column in profile_columns];
+        for text_column in ["shop_section", "height", "weight", "top_size", "bottom_size", "shoe_size", "body_shape"] {
+            if text_column not in profile_column_names {
+                await backend_handle.execAsync("ALTER TABLE style_profile ADD COLUMN " + text_column + " TEXT NOT NULL DEFAULT '';");
+            }
+        }
+        for list_column in ["favorite_stores", "favorite_brands"] {
+            if list_column not in profile_column_names {
+                await backend_handle.execAsync("ALTER TABLE style_profile ADD COLUMN " + list_column + " TEXT NOT NULL DEFAULT '[]';");
+            }
+        }
         clothes_columns = await backend_handle.getAllAsync("PRAGMA table_info(clothes)");
         column_names = [column["name"] for column in clothes_columns];
         if "occasions" not in column_names {
@@ -94,7 +115,16 @@ async def:pub load_payload -> dict[str, any] {
         "occasions": decode_json(profile_row["occasions"], []),
         "inspiration": profile_row["inspiration"],
         "mbti": profile_row["mbti"],
-        "zodiac": profile_row["zodiac"]
+        "zodiac": profile_row["zodiac"],
+        "shop_section": profile_row["shop_section"] or "",
+        "height": profile_row["height"] or "",
+        "weight": profile_row["weight"] or "",
+        "top_size": profile_row["top_size"] or "",
+        "bottom_size": profile_row["bottom_size"] or "",
+        "shoe_size": profile_row["shoe_size"] or "",
+        "body_shape": profile_row["body_shape"] or "",
+        "favorite_stores": decode_json(profile_row["favorite_stores"] or "[]", []),
+        "favorite_brands": decode_json(profile_row["favorite_brands"] or "[]", [])
     };
     clothes = [{
         "clothing_item_id": row["id"],
@@ -130,22 +160,46 @@ async def:pub save_profile_payload(profile: dict[str, any]) {
     db = await initialize_backend();
     await db.runAsync("""
         INSERT INTO style_profile (
-            id, preferred_styles, preferred_colors, occasions, inspiration, mbti, zodiac
-        ) VALUES (1, $preferred_styles, $preferred_colors, $occasions, $inspiration, $mbti, $zodiac)
+            id, preferred_styles, preferred_colors, occasions, inspiration, mbti, zodiac,
+            shop_section, height, weight, top_size, bottom_size, shoe_size, body_shape,
+            favorite_stores, favorite_brands
+        ) VALUES (
+            1, $preferred_styles, $preferred_colors, $occasions, $inspiration, $mbti, $zodiac,
+            $shop_section, $height, $weight, $top_size, $bottom_size, $shoe_size, $body_shape,
+            $favorite_stores, $favorite_brands
+        )
         ON CONFLICT(id) DO UPDATE SET
             preferred_styles = excluded.preferred_styles,
             preferred_colors = excluded.preferred_colors,
             occasions = excluded.occasions,
             inspiration = excluded.inspiration,
             mbti = excluded.mbti,
-            zodiac = excluded.zodiac
+            zodiac = excluded.zodiac,
+            shop_section = excluded.shop_section,
+            height = excluded.height,
+            weight = excluded.weight,
+            top_size = excluded.top_size,
+            bottom_size = excluded.bottom_size,
+            shoe_size = excluded.shoe_size,
+            body_shape = excluded.body_shape,
+            favorite_stores = excluded.favorite_stores,
+            favorite_brands = excluded.favorite_brands
     """, {
         "$preferred_styles": JSON.stringify(profile["preferred_styles"]),
         "$preferred_colors": JSON.stringify(profile["preferred_colors"]),
         "$occasions": JSON.stringify(profile["occasions"]),
         "$inspiration": profile["inspiration"],
         "$mbti": profile["mbti"],
-        "$zodiac": profile["zodiac"]
+        "$zodiac": profile["zodiac"],
+        "$shop_section": profile.get("shop_section", "") or "",
+        "$height": profile.get("height", "") or "",
+        "$weight": profile.get("weight", "") or "",
+        "$top_size": profile.get("top_size", "") or "",
+        "$bottom_size": profile.get("bottom_size", "") or "",
+        "$shoe_size": profile.get("shoe_size", "") or "",
+        "$body_shape": profile.get("body_shape", "") or "",
+        "$favorite_stores": JSON.stringify(profile.get("favorite_stores", []) or []),
+        "$favorite_brands": JSON.stringify(profile.get("favorite_brands", []) or [])
     });
 }
 

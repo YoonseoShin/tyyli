@@ -63,7 +63,10 @@ glob MAX_HISTORY_TURNS: int = 20,
          "when they ask for outfits or pieces from the internet / stores, fill `shopping` with 1 to 3 "
          "concrete product searches, most important first. Each `query` is what you would type into a "
          "shopping search (type, colour, material, gender if clear, e.g. 'dark brown leather chelsea "
-         "boots women'), and `reason` is a few words on why it fits them. Mention these pieces naturally "
+         "boots women'), and `reason` is a few words on why it fits them. Use the Fit line: the "
+         "section they shop (women's/men's) goes into every query, and mention sizes in the reply, not "
+         "the query. Favour their favourite stores and brands when they carry the piece (e.g. add the "
+         "store or brand name to the query), without ignoring better options. Mention these pieces naturally "
          "in the reply; the app shows real products with prices under your message. Leave `shopping` "
          "empty when the closet already covers the outfit and nobody asked about buying."
      );
