@@ -40,6 +40,10 @@ API_URL="http://${LAN_HOST}:${API_PORT}"
 
 echo "Compiling the latest Jac mobile code..."
 cd "${PROJECT_DIR}"
+# The prepared-application cache goes stale when server-side modules change and
+# then fails the client compile with "runtime import(s) ... are not exported".
+# Clearing it costs a few seconds and avoids that.
+jac clean --cache --force >/dev/null 2>&1 || true
 jac run --no-takeover scripts/compile_mobile.jac
 
 printf 'globalThis.__JAC_API_BASE_URL__ = "%s";\n' "${API_URL}" > "${RN_DIR}/__jacApiBase.js"

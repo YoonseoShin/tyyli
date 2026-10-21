@@ -21,7 +21,7 @@ obj:pub StylistTurn {
 }
 
 
-obj:pub ShopItem {
+obj:pub ShopListing {
     has title: str = "",
         price: str = "",
         source: str = "",
@@ -33,7 +33,7 @@ obj:pub ShopItem {
 obj:pub ShopSuggestion {
     has query: str = "",
         reason: str = "",
-        products: list[ShopItem] = [];
+        products: list[ShopListing] = [];
 }
 
 
@@ -99,14 +99,14 @@ def _reply_schema -> dict[str, any] {
 }
 
 
-def _shop_search(query: str, api_key: str) -> list[ShopItem] {
+def _shop_search(query: str, api_key: str) -> list[ShopListing] {
     # Google Shopping through SerpApi: real listings with prices and store names.
     params = {"engine": "google_shopping", "q": query, "hl": "en", "gl": "us", "api_key": api_key};
     request = Request("https://serpapi.com/search.json?" + urlencode(params), method="GET");
     with urlopen(request, timeout=30) as response {
         payload = json.loads(response.read().decode("utf-8")) as dict[str, any];
     }
-    found: list[ShopItem] = [];
+    found: list[ShopListing] = [];
     seen: list[str] = [];
     items = payload.get("shopping_results");
     if not isinstance(items, list) { return found; }
@@ -119,7 +119,7 @@ def _shop_search(query: str, api_key: str) -> list[ShopItem] {
         key = title.split(" / ")[0].strip().lower();
         if key in seen { continue; }
         seen.append(key);
-        found.append(ShopItem(
+        found.append(ShopListing(
             title=title,
             price=str(item.get("price") or ""),
             source=str(item.get("source") or ""),
