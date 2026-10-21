@@ -7,6 +7,8 @@
 #   ./scripts/docker_dev.sh setup      # (re)install mobile dependencies
 #   ./scripts/docker_dev.sh shell      # bash inside the container
 #   ./scripts/docker_dev.sh build      # (re)build the image
+#   ./scripts/docker_dev.sh clean      # clear the Jac build cache (fixes stale
+#                                      # "runtime import(s) ... not exported" compile errors)
 #
 # One-time: run `npx expo login` on the Mac and sign in to Expo Go on the phone
 # with the same account (Expo Go on iOS requires this).
@@ -40,7 +42,7 @@ for vol in tyyli-jac-state tyyli-opt-jac-cache; do
   fi
 done
 
-if [[ -z "${LAN_HOST}" && "${1:-}" != "setup" && "${1:-}" != "shell" ]]; then
+if [[ -z "${LAN_HOST}" && "${1:-}" != "setup" && "${1:-}" != "shell" && "${1:-}" != "clean" ]]; then
   echo "Could not find the Mac's LAN IP. Run: JAC_RN_DEV_HOST=192.168.x.x $0"
   exit 1
 fi
@@ -70,6 +72,7 @@ COMMON=(
 
 case "${1:-}" in
   setup) exec docker run "${COMMON[@]}" -c 'cd /app && jac setup' ;;
+  clean) exec docker run "${COMMON[@]}" -c 'cd /app && jac clean --cache --force' ;;
   shell) exec docker run "${COMMON[@]}" ;;
   *)     exec docker run "${COMMON[@]}" -c 'cd /app && ./scripts/dev_mobile.sh' ;;
 esac
