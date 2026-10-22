@@ -24,7 +24,22 @@ async def initialize_backend -> any {
                 occasions TEXT NOT NULL,
                 inspiration TEXT NOT NULL,
                 mbti TEXT NOT NULL,
-                zodiac TEXT NOT NULL
+                zodiac TEXT NOT NULL,
+                shop_section TEXT NOT NULL DEFAULT '',
+                height TEXT NOT NULL DEFAULT '',
+                weight TEXT NOT NULL DEFAULT '',
+                top_size TEXT NOT NULL DEFAULT '',
+                bottom_size TEXT NOT NULL DEFAULT '',
+                shoe_size TEXT NOT NULL DEFAULT '',
+                body_shape TEXT NOT NULL DEFAULT '',
+                units TEXT NOT NULL DEFAULT '',
+                bust TEXT NOT NULL DEFAULT '',
+                waist TEXT NOT NULL DEFAULT '',
+                hips TEXT NOT NULL DEFAULT '',
+                brand_sizes TEXT NOT NULL DEFAULT '[]',
+                temperature_unit TEXT NOT NULL DEFAULT '',
+                favorite_stores TEXT NOT NULL DEFAULT '[]',
+                favorite_brands TEXT NOT NULL DEFAULT '[]'
             );
             CREATE TABLE IF NOT EXISTS clothes (
                 id TEXT PRIMARY KEY NOT NULL,
@@ -40,6 +55,11 @@ async def initialize_backend -> any {
                 image_path TEXT NOT NULL,
                 source_image_url TEXT NOT NULL,
                 source_product_url TEXT NOT NULL,
+                brand TEXT NOT NULL DEFAULT '',
+                price TEXT NOT NULL DEFAULT '',
+                original_image_path TEXT NOT NULL DEFAULT '',
+                lookup_status TEXT NOT NULL DEFAULT '',
+                lookup_note TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL
             );
             CREATE TABLE IF NOT EXISTS latest_outfit (
@@ -49,6 +69,18 @@ async def initialize_backend -> any {
                 created_at TEXT NOT NULL
             );
         """);
+        profile_columns = await backend_handle.getAllAsync("PRAGMA table_info(style_profile)");
+        profile_column_names = [column["name"] for column in profile_columns];
+        for text_column in ["shop_section", "height", "weight", "top_size", "bottom_size", "shoe_size", "body_shape", "units", "bust", "waist", "hips", "temperature_unit"] {
+            if text_column not in profile_column_names {
+                await backend_handle.execAsync("ALTER TABLE style_profile ADD COLUMN " + text_column + " TEXT NOT NULL DEFAULT '';");
+            }
+        }
+        for list_column in ["favorite_stores", "favorite_brands", "brand_sizes"] {
+            if list_column not in profile_column_names {
+                await backend_handle.execAsync("ALTER TABLE style_profile ADD COLUMN " + list_column + " TEXT NOT NULL DEFAULT '[]';");
+            }
+        }
         clothes_columns = await backend_handle.getAllAsync("PRAGMA table_info(clothes)");
         column_names = [column["name"] for column in clothes_columns];
         if "occasions" not in column_names {
@@ -56,6 +88,21 @@ async def initialize_backend -> any {
         }
         if "description" not in column_names {
             await backend_handle.execAsync("ALTER TABLE clothes ADD COLUMN description TEXT NOT NULL DEFAULT '';");
+        }
+        if "brand" not in column_names {
+            await backend_handle.execAsync("ALTER TABLE clothes ADD COLUMN brand TEXT NOT NULL DEFAULT '';");
+        }
+        if "price" not in column_names {
+            await backend_handle.execAsync("ALTER TABLE clothes ADD COLUMN price TEXT NOT NULL DEFAULT '';");
+        }
+        if "original_image_path" not in column_names {
+            await backend_handle.execAsync("ALTER TABLE clothes ADD COLUMN original_image_path TEXT NOT NULL DEFAULT '';");
+        }
+        if "lookup_status" not in column_names {
+            await backend_handle.execAsync("ALTER TABLE clothes ADD COLUMN lookup_status TEXT NOT NULL DEFAULT '';");
+        }
+        if "lookup_note" not in column_names {
+            await backend_handle.execAsync("ALTER TABLE clothes ADD COLUMN lookup_note TEXT NOT NULL DEFAULT '';");
         }
     }
     return backend_handle;
@@ -74,7 +121,22 @@ async def:pub load_payload -> dict[str, any] {
         "occasions": decode_json(profile_row["occasions"], []),
         "inspiration": profile_row["inspiration"],
         "mbti": profile_row["mbti"],
-        "zodiac": profile_row["zodiac"]
+        "zodiac": profile_row["zodiac"],
+        "shop_section": profile_row["shop_section"] or "",
+        "height": profile_row["height"] or "",
+        "weight": profile_row["weight"] or "",
+        "top_size": profile_row["top_size"] or "",
+        "bottom_size": profile_row["bottom_size"] or "",
+        "shoe_size": profile_row["shoe_size"] or "",
+        "body_shape": profile_row["body_shape"] or "",
+        "units": profile_row["units"] or "in",
+        "bust": profile_row["bust"] or "",
+        "waist": profile_row["waist"] or "",
+        "hips": profile_row["hips"] or "",
+        "brand_sizes": decode_json(profile_row["brand_sizes"] or "[]", []),
+        "temperature_unit": profile_row["temperature_unit"] or "F",
+        "favorite_stores": decode_json(profile_row["favorite_stores"] or "[]", []),
+        "favorite_brands": decode_json(profile_row["favorite_brands"] or "[]", [])
     };
     clothes = [{
         "clothing_item_id": row["id"],
@@ -90,6 +152,11 @@ async def:pub load_payload -> dict[str, any] {
         "image_path": row["image_path"],
         "source_image_url": row["source_image_url"],
         "source_product_url": row["source_product_url"],
+        "brand": row["brand"],
+        "price": row["price"],
+        "original_image_path": row["original_image_path"],
+        "lookup_status": row["lookup_status"],
+        "lookup_note": row["lookup_note"],
         "created_at": row["created_at"]
     } for row in clothes_rows];
     latest_outfit = None if outfit_row is None else {
@@ -105,22 +172,60 @@ async def:pub save_profile_payload(profile: dict[str, any]) {
     db = await initialize_backend();
     await db.runAsync("""
         INSERT INTO style_profile (
-            id, preferred_styles, preferred_colors, occasions, inspiration, mbti, zodiac
-        ) VALUES (1, $preferred_styles, $preferred_colors, $occasions, $inspiration, $mbti, $zodiac)
+            id, preferred_styles, preferred_colors, occasions, inspiration, mbti, zodiac,
+            shop_section, height, weight, top_size, bottom_size, shoe_size, body_shape,
+            units, bust, waist, hips, brand_sizes, temperature_unit,
+            favorite_stores, favorite_brands
+        ) VALUES (
+            1, $preferred_styles, $preferred_colors, $occasions, $inspiration, $mbti, $zodiac,
+            $shop_section, $height, $weight, $top_size, $bottom_size, $shoe_size, $body_shape,
+            $units, $bust, $waist, $hips, $brand_sizes, $temperature_unit,
+            $favorite_stores, $favorite_brands
+        )
         ON CONFLICT(id) DO UPDATE SET
             preferred_styles = excluded.preferred_styles,
             preferred_colors = excluded.preferred_colors,
             occasions = excluded.occasions,
             inspiration = excluded.inspiration,
             mbti = excluded.mbti,
-            zodiac = excluded.zodiac
+            zodiac = excluded.zodiac,
+            shop_section = excluded.shop_section,
+            height = excluded.height,
+            weight = excluded.weight,
+            top_size = excluded.top_size,
+            bottom_size = excluded.bottom_size,
+            shoe_size = excluded.shoe_size,
+            body_shape = excluded.body_shape,
+            units = excluded.units,
+            bust = excluded.bust,
+            waist = excluded.waist,
+            hips = excluded.hips,
+            brand_sizes = excluded.brand_sizes,
+            temperature_unit = excluded.temperature_unit,
+            favorite_stores = excluded.favorite_stores,
+            favorite_brands = excluded.favorite_brands
     """, {
         "$preferred_styles": JSON.stringify(profile["preferred_styles"]),
         "$preferred_colors": JSON.stringify(profile["preferred_colors"]),
         "$occasions": JSON.stringify(profile["occasions"]),
         "$inspiration": profile["inspiration"],
         "$mbti": profile["mbti"],
-        "$zodiac": profile["zodiac"]
+        "$zodiac": profile["zodiac"],
+        "$shop_section": profile.get("shop_section", "") or "",
+        "$height": profile.get("height", "") or "",
+        "$weight": profile.get("weight", "") or "",
+        "$top_size": profile.get("top_size", "") or "",
+        "$bottom_size": profile.get("bottom_size", "") or "",
+        "$shoe_size": profile.get("shoe_size", "") or "",
+        "$body_shape": profile.get("body_shape", "") or "",
+        "$units": profile.get("units", "") or "in",
+        "$bust": profile.get("bust", "") or "",
+        "$waist": profile.get("waist", "") or "",
+        "$hips": profile.get("hips", "") or "",
+        "$brand_sizes": JSON.stringify(profile.get("brand_sizes", []) or []),
+        "$temperature_unit": profile.get("temperature_unit", "") or "F",
+        "$favorite_stores": JSON.stringify(profile.get("favorite_stores", []) or []),
+        "$favorite_brands": JSON.stringify(profile.get("favorite_brands", []) or [])
     });
 }
 
@@ -130,10 +235,12 @@ async def:pub save_clothing_payload(item: dict[str, any]) {
     await db.runAsync("""
         INSERT INTO clothes (
             id, name, category, colors, seasons, style_tags, occasions, warmth, waterproof,
-            description, image_path, source_image_url, source_product_url, created_at
+            description, image_path, source_image_url, source_product_url,
+            brand, price, original_image_path, lookup_status, lookup_note, created_at
         ) VALUES (
             $id, $name, $category, $colors, $seasons, $style_tags, $occasions, $warmth, $waterproof,
-            $description, $image_path, $source_image_url, $source_product_url, $created_at
+            $description, $image_path, $source_image_url, $source_product_url,
+            $brand, $price, $original_image_path, $lookup_status, $lookup_note, $created_at
         )
         ON CONFLICT(id) DO UPDATE SET
             name = excluded.name,
@@ -148,6 +255,11 @@ async def:pub save_clothing_payload(item: dict[str, any]) {
             image_path = excluded.image_path,
             source_image_url = excluded.source_image_url,
             source_product_url = excluded.source_product_url,
+            brand = excluded.brand,
+            price = excluded.price,
+            original_image_path = excluded.original_image_path,
+            lookup_status = excluded.lookup_status,
+            lookup_note = excluded.lookup_note,
             created_at = excluded.created_at
     """, {
         "$id": item["clothing_item_id"],
@@ -163,6 +275,11 @@ async def:pub save_clothing_payload(item: dict[str, any]) {
         "$image_path": item["image_path"],
         "$source_image_url": item["source_image_url"],
         "$source_product_url": item["source_product_url"],
+        "$brand": item.get("brand", "") or "",
+        "$price": item.get("price", "") or "",
+        "$original_image_path": item.get("original_image_path", "") or "",
+        "$lookup_status": item.get("lookup_status", "") or "",
+        "$lookup_note": item.get("lookup_note", "") or "",
         "$created_at": item["created_at"]
     });
 }

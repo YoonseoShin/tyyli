@@ -13,7 +13,9 @@ def:pub HomeScreen(
     today_events: list[CalendarEvent],
     today_outfit: Outfit | None,
     clothes: list[ClothingItem],
-    on_navigate: Callable[[str], None]
+    on_navigate: Callable[[str], None],
+    temperature_unit: str = "F",
+    on_toggle_unit: Callable[[], None] | None = None
 ) -> JsxElement {
     return <ScrollView style={ui.screen} contentContainerStyle={ui.page}>
         <View>
@@ -21,7 +23,7 @@ def:pub HomeScreen(
             <Text style={ui.muted}>Here's your day.</Text>
         </View>
 
-        <WeatherCard weather={weather}/>
+        <WeatherCard weather={weather} unit={temperature_unit} on_toggle_unit={on_toggle_unit}/>
 
         {(
             <Pressable onPress={lambda { on_navigate("outfits"); }}>
