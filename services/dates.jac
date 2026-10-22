@@ -18,5 +18,6 @@ def:pub day_label(days_from_today: int = 0) -> str {
     if days_from_today == 0 { return "Today"; }
     if days_from_today == 1 { return "Tomorrow"; }
     day = new(Date, Date.now() + days_from_today * DAY_MS);
-    return str(WEEKDAYS[day.getDay()]) + " " + str(day.getMonth() + 1) + "/" + str(day.getDate());
+    weekday_index = int(day.getDay());
+    return str(WEEKDAYS[weekday_index]) + " " + str(day.getMonth() + 1) + "/" + str(day.getDate());
 }
