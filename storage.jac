@@ -15,7 +15,22 @@ obj:pub StyleProfile {
         occasions: list[str] = [],
         inspiration: str = "",
         mbti: str = "",
-        zodiac: str = "";
+        zodiac: str = "",
+        shop_section: str = "",
+        height: str = "",
+        weight: str = "",
+        top_size: str = "",
+        bottom_size: str = "",
+        shoe_size: str = "",
+        body_shape: str = "",
+        units: str = "in",
+        bust: str = "",
+        waist: str = "",
+        hips: str = "",
+        brand_sizes: list[str] = [],
+        temperature_unit: str = "F",
+        favorite_stores: list[str] = [],
+        favorite_brands: list[str] = [];
 }
 
 
@@ -33,6 +48,11 @@ obj:pub ClothingItem {
         image_path: str = "",
         source_image_url: str = "",
         source_product_url: str = "",
+        brand: str = "",
+        price: str = "",
+        original_image_path: str = "",
+        lookup_status: str = "",
+        lookup_note: str = "",
         created_at: str = "";
 }
 
@@ -82,7 +102,22 @@ def _profile_from_payload(payload: dict[str, any]) -> StyleProfile {
         occasions=_string_list(payload, "occasions"),
         inspiration=_string_value(payload, "inspiration"),
         mbti=_string_value(payload, "mbti"),
-        zodiac=_string_value(payload, "zodiac")
+        zodiac=_string_value(payload, "zodiac"),
+        shop_section=_string_value(payload, "shop_section"),
+        height=_string_value(payload, "height"),
+        weight=_string_value(payload, "weight"),
+        top_size=_string_value(payload, "top_size"),
+        bottom_size=_string_value(payload, "bottom_size"),
+        shoe_size=_string_value(payload, "shoe_size"),
+        body_shape=_string_value(payload, "body_shape"),
+        units=_string_value(payload, "units", "in") or "in",
+        bust=_string_value(payload, "bust"),
+        waist=_string_value(payload, "waist"),
+        hips=_string_value(payload, "hips"),
+        brand_sizes=_string_list(payload, "brand_sizes"),
+        temperature_unit=_string_value(payload, "temperature_unit", "F") or "F",
+        favorite_stores=_string_list(payload, "favorite_stores"),
+        favorite_brands=_string_list(payload, "favorite_brands")
     );
 }
 
@@ -102,6 +137,11 @@ def _clothing_from_payload(payload: dict[str, any]) -> ClothingItem {
         image_path=_string_value(payload, "image_path"),
         source_image_url=_string_value(payload, "source_image_url"),
         source_product_url=_string_value(payload, "source_product_url"),
+        brand=_string_value(payload, "brand"),
+        price=_string_value(payload, "price"),
+        original_image_path=_string_value(payload, "original_image_path"),
+        lookup_status=_string_value(payload, "lookup_status"),
+        lookup_note=_string_value(payload, "lookup_note"),
         created_at=_string_value(payload, "created_at")
     );
 }
@@ -156,7 +196,22 @@ async def:pub save_profile(profile: StyleProfile) -> LocalUserData {
         "occasions": profile.occasions,
         "inspiration": profile.inspiration,
         "mbti": profile.mbti,
-        "zodiac": profile.zodiac
+        "zodiac": profile.zodiac,
+        "shop_section": profile.shop_section,
+        "height": profile.height,
+        "weight": profile.weight,
+        "top_size": profile.top_size,
+        "bottom_size": profile.bottom_size,
+        "shoe_size": profile.shoe_size,
+        "body_shape": profile.body_shape,
+        "units": profile.units,
+        "bust": profile.bust,
+        "waist": profile.waist,
+        "hips": profile.hips,
+        "brand_sizes": profile.brand_sizes,
+        "temperature_unit": profile.temperature_unit,
+        "favorite_stores": profile.favorite_stores,
+        "favorite_brands": profile.favorite_brands
     });
     return await load_local_data();
 }
@@ -177,6 +232,11 @@ async def:pub save_clothing_item(item: ClothingItem) -> LocalUserData {
         "image_path": item.image_path,
         "source_image_url": item.source_image_url,
         "source_product_url": item.source_product_url,
+        "brand": item.brand,
+        "price": item.price,
+        "original_image_path": item.original_image_path,
+        "lookup_status": item.lookup_status,
+        "lookup_note": item.lookup_note,
         "created_at": item.created_at
     });
     return await load_local_data();

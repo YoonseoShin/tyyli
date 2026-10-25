@@ -32,8 +32,13 @@ def:pub ProfileScreen(
             <ProfileRow label="DRESSING FOR" value={or_dash(profile.occasions) if profile else "-"}/>
             <ProfileRow label="INSPIRED BY" value={(profile.inspiration or "-") if profile else "-"}/>
             <ProfileRow label="PERSONALITY" value={" · ".join([v for v in [profile.mbti, profile.zodiac] if v]) or "-" if profile else "-"}/>
+            <ProfileRow label="FIT" value={" · ".join([v for v in [profile.shop_section, profile.height, profile.weight, ("top " + profile.top_size) if profile.top_size else "", ("bottom " + profile.bottom_size) if profile.bottom_size else "", ("shoe " + profile.shoe_size) if profile.shoe_size else "", profile.body_shape] if v]) or "-" if profile else "-"}/>
+            <ProfileRow label="MEASUREMENTS" value={" · ".join([v for v in [("waist " + profile.waist) if profile.waist else "", ("hips " + profile.hips) if profile.hips else ""] if v]) or "-" if profile else "-"}/>
+            <ProfileRow label="SIZES BY BRAND" value={or_dash(profile.brand_sizes) if profile else "-"}/>
+            <ProfileRow label="SHOPS AT" value={or_dash(profile.favorite_stores) if profile else "-"}/>
+            <ProfileRow label="BRANDS" value={or_dash(profile.favorite_brands) if profile else "-"}/>
             <Pressable style={ui.button} onPress={lambda { on_edit_profile(); }}>
-                <Text style={ui.buttonText}>Redo style quiz</Text>
+                <Text style={ui.buttonText}>Edit style profile</Text>
             </Pressable>
         </View>
 

@@ -1,11 +1,34 @@
 """Chat with the styling assistant."""
-import from "@jac/mobui" { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View }
+import from "@jac/mobui" { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, TextInput, View }
+import from ..components.Button { Button }
 import from ..models { ChatMessage }
-import from ..ui.kit { ui }
+import from ..photo_storage { resolve_clothing_image_uri }
+import from ..storage { ClothingItem }
+import from ..ui.kit { C, ui }
 
 
-def:pub ChatScreen(messages: list[ChatMessage], sending: bool, on_send: Callable[[str], None]) -> JsxElement {
+glob SUGGESTIONS: list[str] = [
+    "What should I wear tonight?",
+    "Put together an outfit for class tomorrow",
+    "How do I style my favourite jacket?",
+    "What should I buy next?"
+];
+
+
+def:pub ChatScreen(
+    messages: list[ChatMessage],
+    sending: bool,
+    clothes: list[ClothingItem],
+    on_send: Callable[[str], None],
+    on_edit: Callable[[int], None] | None = None
+) -> JsxElement {
     has draft: str = "";
+
+    def start_edit(index: int, text: str) {
+        if sending { return; }
+        draft = text;
+        if on_edit { on_edit(index); }
+    }
 
     def submit {
         text = draft.strip();
@@ -14,17 +37,78 @@ def:pub ChatScreen(messages: list[ChatMessage], sending: bool, on_send: Callable
         on_send(text);
     }
 
-    return <KeyboardAvoidingView style={ui.screen} behavior={"padding" if Platform.OS == "ios" else "height"}>
-        <ScrollView style={ui.flex1} contentContainerStyle={ui.page}>
+    def items_for(ids: list[str]) -> list[ClothingItem] {
+        by_id = {c.clothing_item_id: c for c in clothes};
+        return [by_id[i] for i in ids if i in by_id];
+    }
+
+    # The app shell shrinks above the keyboard, so a plain full-height View is enough here.
+    return <View style={ui.screen}>
+        <ScrollView style={ui.flex1} contentContainerStyle={ui.page} keyboardShouldPersistTaps="handled">
             <Text style={ui.title}>Stylist</Text>
-            {(<Text style={ui.muted}>Ask what to wear, how to style an item, or what fits your plans.</Text>) if not messages else None}
+            {(
+                <View style={{"gap": 8}}>
+                    <Text style={ui.muted}>Ask what to wear, how to style an item, or what fits your plans. I know your closet, the weather and your calendar.</Text>
+                    <View style={ui.wrap}>
+                        {[
+                            <View key={s} style={ui.chip}>
+                                <Text style={ui.chipText} onPress={lambda { draft = ""; on_send(s); }}>{s}</Text>
+                            </View>
+                            for s in SUGGESTIONS
+                        ]}
+                    </View>
+                </View>
+            ) if not messages else None}
             {[
-                <View key={str(n)} style={ui.bubbleUser if m.role == "user" else ui.bubbleBot}>
-                    <Text style={ui.bubbleUserText if m.role == "user" else ui.body}>{m.text}</Text>
+                <View key={str(n)} style={{"gap": 6}}>
+                    <View style={ui.bubbleUser if m.role == "user" else ui.bubbleBot}>
+                        <Text style={ui.bubbleUserText if m.role == "user" else ui.body}>{m.text}</Text>
+                    </View>
+                    {(
+                        <Pressable style={{"alignSelf": "flex-end"}} onPress={lambda { start_edit(n, m.text); }}>
+                            <Text style={ui.link}>Edit & resend</Text>
+                        </Pressable>
+                    ) if m.role == "user" and not sending else None}
+                    {(
+                        <ScrollView horizontal={True} showsHorizontalScrollIndicator={False}>
+                            <View style={ui.row}>
+                                {[
+                                    <View key={item.clothing_item_id} style={{"width": 84, "gap": 2}}>
+                                        <Image source={{"uri": resolve_clothing_image_uri(item.image_path)}} style={[ui.thumb, {"width": 84, "height": 84}]} resizeMode="cover"/>
+                                        <Text style={ui.muted} numberOfLines={2}>{item.name}</Text>
+                                    </View>
+                                    for item in items_for(m.clothing_item_ids)
+                                ]}
+                            </View>
+                        </ScrollView>
+                    ) if m.role == "assistant" and m.clothing_item_ids else None}
+                    {(
+                        <View style={{"gap": 4}}>
+                            <Text style={ui.muted}>Shop the pieces (tap to open):</Text>
+                            <ScrollView horizontal={True} showsHorizontalScrollIndicator={False}>
+                                <View style={ui.row}>
+                                    {[
+                                        <Pressable key={p.link + p.title} style={[ui.card, {"width": 150, "padding": 8, "gap": 4}]} onPress={lambda { Linking.openURL(p.link); }}>
+                                            <Image source={{"uri": p.thumbnail}} style={{"width": "100%", "height": 120, "borderRadius": 10, "backgroundColor": C.soft}} resizeMode="contain"/>
+                                            <Text style={ui.body} numberOfLines={2}>{p.title}</Text>
+                                            <Text style={ui.muted} numberOfLines={1}>{(p.price + " · " if p.price else "") + p.source}</Text>
+                                            {(<Text style={ui.muted} numberOfLines={2}>{p.reason}</Text>) if p.reason else None}
+                                        </Pressable>
+                                        for p in m.shop_items
+                                    ]}
+                                </View>
+                            </ScrollView>
+                        </View>
+                    ) if m.role == "assistant" and m.shop_items else None}
                 </View>
                 for (n, m) in enumerate(messages)
             ]}
-            {(<Text style={ui.muted}>Thinking...</Text>) if sending else None}
+            {(
+                <View style={[ui.bubbleBot, ui.row]}>
+                    <ActivityIndicator size="small" color={C.accent}/>
+                    <Text style={ui.muted}>Thinking...</Text>
+                </View>
+            ) if sending else None}
         </ScrollView>
         <View style={[ui.row, {"padding": 12}]}>
             <TextInput
@@ -33,10 +117,10 @@ def:pub ChatScreen(messages: list[ChatMessage], sending: bool, on_send: Callable
                 placeholder="What should I wear today?"
                 onChangeText={lambda (t: str) { draft = t; }}
                 onSubmitEditing={lambda { submit(); }}
+                returnKeyType="send"
+                editable={not sending}
             />
-            <Pressable style={ui.button} onPress={lambda { submit(); }}>
-                <Text style={ui.buttonText}>Send</Text>
-            </Pressable>
+            <Button label="Send" grow={False} disabled={sending or not draft.strip()} busy={sending} on_press={lambda { submit(); }}/>
         </View>
-    </KeyboardAvoidingView>;
+    </View>;
 }

@@ -21,11 +21,20 @@ async def:pub get_today_weather -> WeatherInfo {
 }
 
 
-def:pub describe_weather(weather: WeatherInfo | None) -> str {
+def:pub to_unit(temp_f: int, unit: str) -> int {
+    if unit == "C" {
+        return int(Math.round((temp_f - 32) * 5 / 9));
+    }
+    return temp_f;
+}
+
+
+def:pub describe_weather(weather: WeatherInfo | None, unit: str = "F") -> str {
     if weather is None {
         return "Loading weather...";
     }
-    return weather.condition + ", " + str(weather.temperature_f) + "°F (H " + str(weather.high_f) + "° / L " + str(weather.low_f) + "°)";
+    degree = "°C" if unit == "C" else "°F";
+    return weather.condition + ", " + str(to_unit(weather.temperature_f, unit)) + degree + " (H " + str(to_unit(weather.high_f, unit)) + "° / L " + str(to_unit(weather.low_f, unit)) + "°)";
 }
 
 

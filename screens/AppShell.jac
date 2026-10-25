@@ -3,7 +3,7 @@
 Navigation is plain state: `tab` is the bottom-tab screen, `route` is a
 full-screen page opened on top (calendar, onboarding, storage test).
 """
-import from "@jac/mobui" { Pressable, Text, View, useWindowDimensions }
+import from "@jac/mobui" { Keyboard, Platform, Pressable, Text, View, useWindowDimensions }
 import from ..components.StyleProfileOnboarding { StyleProfileOnboarding }
 import from ..components.TabBar { TABS, TabBar }
 import from ..models { CalendarEvent, ChatMessage, WeatherInfo }
@@ -32,7 +32,8 @@ def:pub AppShell -> JsxElement {
         tab: str = "home",
         route: str = "",
         messages: list[ChatMessage] = [],
-        sending: bool = False;
+        sending: bool = False,
+        keyboard_height: float = 0.0;
     # Pin the shell to the window height so the tab bar stays at the bottom on web.
     viewport = useWindowDimensions();
 
@@ -47,6 +48,14 @@ def:pub AppShell -> JsxElement {
     }
 
     async can with entry {
+        # While the keyboard is up, the shell shrinks by its height and the tab
+        # bar hides, so text inputs on every screen stay visible above it.
+        if Platform.OS != "web" {
+            show_event = "keyboardWillShow" if Platform.OS == "ios" else "keyboardDidShow";
+            hide_event = "keyboardWillHide" if Platform.OS == "ios" else "keyboardDidHide";
+            Keyboard.addListener(show_event, lambda (e: any) { keyboard_height = e.endCoordinates.height; });
+            Keyboard.addListener(hide_event, lambda (e: any) { keyboard_height = 0.0; });
+        }
         await reload();
         weather = await get_today_weather();
         events = await get_week_events();
@@ -61,6 +70,20 @@ def:pub AppShell -> JsxElement {
         }
     }
 
+    async def toggle_temperature_unit {
+        if data.profile is None { return; }
+        profile = data.profile;
+        profile.temperature_unit = "C" if profile.temperature_unit != "C" else "F";
+        data = await save_profile(profile);
+    }
+
+    # The user wants to fix an earlier message: drop it and everything after it;
+    # the chat screen puts its text back into the input box.
+    def edit_message(index: int) {
+        if sending { return; }
+        messages = messages[:index];
+    }
+
     async def finish_onboarding(profile: StyleProfile) {
         data = await save_profile(profile);
         route = "";
@@ -72,7 +95,7 @@ def:pub AppShell -> JsxElement {
         messages = history;
         sending = True;
         try {
-            reply = await send_chat_message(history, data.clothes);
+            reply = await send_chat_message(history, data.clothes, data.profile, weather, events);
             messages = history + [reply];
         } except Exception as e {
             messages = history + [ChatMessage(role="assistant", text="Something went wrong: " + str(e))];
@@ -88,7 +111,7 @@ def:pub AppShell -> JsxElement {
 
     # First launch (no saved profile) or "Redo style quiz".
     if data.profile is None or route == "onboarding" {
-        return <StyleProfileOnboarding on_finish={lambda (p: StyleProfile) { finish_onboarding(p); }}/>;
+        return <StyleProfileOnboarding initial={data.profile} on_finish={lambda (p: StyleProfile) { finish_onboarding(p); }}/>;
     }
 
     if route == "calendar" {
@@ -110,15 +133,15 @@ def:pub AppShell -> JsxElement {
     today_outfit = build_outfit(data.clothes, data.profile, weather, events, 0);
     week = build_week(data.clothes, data.profile, weather, events);
 
-    return <View style={[ui.app, {"height": viewport.height}]}>
+    return <View style={[ui.app, {"height": viewport.height - keyboard_height}]}>
         {(<Text style={[ui.muted, {"padding": 16}]}>{load_error}</Text>) if load_error else None}
         <View style={ui.flex1}>
-            {(<HomeScreen weather={weather} today_events={today_events} today_outfit={today_outfit} clothes={data.clothes} on_navigate={lambda (t: str) { navigate(t); }}/>) if tab == "home" else None}
+            {(<HomeScreen weather={weather} today_events={today_events} today_outfit={today_outfit} clothes={data.clothes} on_navigate={lambda (t: str) { navigate(t); }} temperature_unit={data.profile.temperature_unit if data.profile else "F"} on_toggle_unit={lambda { toggle_temperature_unit(); }}/>) if tab == "home" else None}
             {(<ClosetScreen clothes={data.clothes} on_changed={lambda { reload(); }}/>) if tab == "closet" else None}
             {(<OutfitsScreen today={today_outfit} week={week} clothes={data.clothes}/>) if tab == "outfits" else None}
-            {(<ChatScreen messages={messages} sending={sending} on_send={lambda (t: str) { send_message(t); }}/>) if tab == "chat" else None}
+            {(<ChatScreen messages={messages} sending={sending} clothes={data.clothes} on_send={lambda (t: str) { send_message(t); }} on_edit={lambda (i: int) { edit_message(i); }}/>) if tab == "chat" else None}
             {(<ProfileScreen profile={data.profile} clothes_count={len(data.clothes)} on_edit_profile={lambda { route = "onboarding"; }} on_open_storage_test={lambda { route = "storage_test"; }}/>) if tab == "profile" else None}
         </View>
-        <TabBar active={tab} on_select={lambda (t: str) { navigate(t); }}/>
+        {(<TabBar active={tab} on_select={lambda (t: str) { navigate(t); }}/>) if keyboard_height <= 0 else None}
     </View>;
 }
