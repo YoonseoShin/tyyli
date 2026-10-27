@@ -23,7 +23,17 @@ obj:pub CalendarEvent {
         date: str,
         start_time: str = "",
         kind: str = "other",
-        formality: int = 2;
+        formality: int = 2,
+        is_major: bool = True;
+}
+
+
+obj:pub OutfitExplanation {
+    has color: str = "",
+        mood: str = "",
+        weather: str = "",
+        plans: str = "",
+        personal: str = "";
 }
 
 
@@ -33,8 +43,15 @@ obj:pub Outfit {
         style_name: str = "",
         reason: str = "",
         description: str = "",
+        color_reason: str = "",
+        mood_reason: str = "",
+        weather_reason: str = "",
+        plan_reason: str = "",
+        personal_reason: str = "",
         clothing_item_ids: list[str] = [],
-        event_title: str = "";
+        event_title: str = "",
+        match_reasons: list[str] = [],
+        confidence: int = 0;
 }
 
 
@@ -53,4 +70,17 @@ obj:pub ChatMessage {
         text: str,
         clothing_item_ids: list[str] = [],
         shop_items: list[ShopItem] = [];
+}
+
+
+# One look the user marked as "Wearing Today", kept in the History tab.
+obj:pub HistoryEntry {
+    has entry_id: str,
+        date: str,
+        style_name: str = "",
+        clothing_item_ids: list[str] = [],
+        event_title: str = "",
+        formality_label: str = "",
+        temperature_f: int = 0,
+        created_at: str = "";
 }
