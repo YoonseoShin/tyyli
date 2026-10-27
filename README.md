@@ -32,10 +32,12 @@ components/               StyleProfileOnboarding, TabBar, OutfitCollage (sticker
 services/                 app logic the screens call (runs on the device)
   weather_service.jac     Open-Meteo weather using the device location
   calendar_service.jac    PLACEHOLDER sample events (Google Calendar later)
-  outfit_service.jac      explainable outfit recommendation engine
+  outfit_service.jac      prepares and displays outfit recommendations
+  ai_outfit_service.jac   builds the recommendation context and validates AI results
   chat_service.jac        PLACEHOLDER canned replies (AI later)
   wardrobe_actions.jac    add / analyze / delete closet items
   history_store.jac       outfit history saved on the device (AsyncStorage)
+outfit_ai.jac             server-side Claude request, prompt, and response schema
 models.jac                WeatherInfo, CalendarEvent, Outfit, ChatMessage, HistoryEntry
 storage.jac               StyleProfile, ClothingItem + on-device persistence
 ui/kit.jac                design tokens and the shared stylesheet
@@ -54,11 +56,57 @@ ui/kit.jac                design tokens and the shared stylesheet
 - `services.*` is pinned to the client in `jac.toml` (`[placement.pins]`), so
   these helpers run on the device and are not server endpoints.
 
+## AI outfit recommendation
+
+The outfit picker uses Claude as the decision-making stylist rather than using
+a fixed rule-based score. The app sends structured text metadata to the Jac
+server; the Anthropic API key stays on the server and is never included in the
+mobile bundle.
+
+### Information considered
+
+- Closet metadata: item ID, name, category, colors, style tags, occasions,
+  seasons, warmth, and available visual details
+- Style profile: preferred styles and colors, common occasions, body-shape
+  notes, sizes, shopping section, and saved inspiration
+- Today's weather: temperature, conditions, and precipitation chance
+- Today's schedule: every event plus its time, kind, and formality; events
+  marked as major receive their own recommendation
+- The previous seven days of outfit history, so recently worn pieces can be
+  avoided when the closet has a suitable alternative
+
+### Recommendation behavior
+
+1. Claude creates one versatile `all_day` outfit that works across the full
+   day.
+2. Claude also creates one focused outfit for each major calendar event. If
+   there are no major events, only the all-day outfit is requested.
+3. Each look must use exact IDs from the user's closet and contain either a
+   Dress, or both a Top and Bottom. Outerwear is added when the weather needs
+   it, and Shoes are included when available.
+4. Claude evaluates color harmony, silhouette and proportions, mood, weather,
+   schedule practicality, user preferences, and recent repetition. It returns
+   a holistic Style Score from 0 to 100 plus separate explanations for color,
+   mood, weather, plans, and personal fit.
+5. Regenerate supplies a variation number so Claude can propose a different
+   valid combination.
+
+The app validates every response before displaying it. Unknown item IDs,
+duplicate categories, and incomplete outfits are rejected. Pieces may be
+reused across recommendations, but two looks cannot contain the exact same
+complete set of items. If Claude omits a required look, returns an invalid
+look, or repeats a complete set, the service makes up to three correction
+requests for the missing recommendation instead of silently removing it.
+
+Google Calendar is not required by the recommendation interface. The current
+event provider can later be replaced with Google Calendar read-only data while
+keeping the same recommendation flow.
+
 ## Requirements
 
 - Jac `0.37.23` or newer
 - Expo Go for SDK 58, an iOS simulator, or an Android emulator
-- An Anthropic API key
+- An Anthropic API key for Claude outfit recommendations and clothing metadata
 - For a physical phone, the phone and development computer must be on the
   same local network
 
