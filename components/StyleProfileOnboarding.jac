@@ -1,5 +1,6 @@
 """Tyyli — a thoughtful, personal style discovery."""
 import from "@jac/mobui" { View, Text, Pressable, TextInput, ScrollView, Image, useWindowDimensions }
+import from .AppIcon { AppIcon }
 import from ..assets_body_shapes { BODY_SHAPE_CREDIT, BODY_SHAPE_IMAGES }
 import from ..storage { StyleProfile }
 import from ..theme { buildStyles }
@@ -95,6 +96,7 @@ def:pub StyleProfileOnboarding(
 ) -> JsxElement {
     # Every answer lives in component state, so Back / Continue never lose a selection.
     has step: int = 0,
+        user_name: str = initial.name if initial else "",
         selected_styles: list[str] = initial.preferred_styles if initial else [],
         selected_colors: list[str] = initial.preferred_colors if initial else [],
         selected_occasions: list[str] = initial.occasions if initial else [],
@@ -219,6 +221,7 @@ def:pub StyleProfileOnboarding(
     def finish {
         if on_finish {
             on_finish(StyleProfile(
+                name=user_name.strip(),
                 preferred_styles=selected_styles,
                 preferred_colors=selected_colors,
                 occasions=selected_occasions,
@@ -285,7 +288,11 @@ def:pub StyleProfileOnboarding(
             <Text style={styles.subtitle}>{subtitles[step]}</Text>
         </View>
 
-        {step == 0 and <View style={styles.welcomeNote}><Text style={styles.welcomeQuote}>"Your wardrobe, with a little more you."</Text><Text style={styles.noteSmall}>A few quick picks. About two minutes.</Text></View>}
+        {step == 0 and <View style={[styles.welcomeNote, {"gap": 12}]}>
+            <Text style={styles.welcomeQuote}>"Your wardrobe, with a little more you."</Text>
+            <TextInput style={styles.input} value={user_name} placeholder="Your name" placeholderTextColor={C["muted"]} autoCapitalize="words" onChangeText={lambda (t: str) { user_name = t; }}/>
+            <Text style={styles.noteSmall}>A few quick picks. About two minutes.</Text>
+        </View>}
         {step == 1 and <View style={styles.optionGrid}>{[chip(x, x in selected_styles, lambda { selected_styles = toggle(selected_styles, x); }) for x in options["styles"]]}</View>}
         {step == 2 and <View style={styles.optionGrid}>{[chip(x, x in selected_colors, lambda { selected_colors = toggle(selected_colors, x); }) for x in options["colors"]]}</View>}
 
@@ -329,7 +336,7 @@ def:pub StyleProfileOnboarding(
                 <Pressable style={[styles.chip, {"alignSelf": "flex-start"}]} onPress={lambda { add_brand_size(); }}>
                     <Text style={styles.chipText}>Add this size</Text>
                 </Pressable>
-                {(<View style={styles.optionGrid}>{[chip(b + "  ✕", True, lambda { brand_sizes = [v for v in brand_sizes if v != b]; }) for b in brand_sizes]}</View>) if brand_sizes else None}
+                {(<View style={styles.optionGrid}>{[chip(b + "  Remove", True, lambda { brand_sizes = [v for v in brand_sizes if v != b]; }) for b in brand_sizes]}</View>) if brand_sizes else None}
             </View>) if show_brand_sizes else None}
         </View>}
 
@@ -399,7 +406,7 @@ def:pub StyleProfileOnboarding(
             {step == 0 and <View style={styles.backButton}><Text style={styles.timeText}>PERSONALIZED, NOT PRESCRIBED</Text></View>}
             <Pressable style={styles.primaryButton} onPress={lambda { if step == TOTAL { finish(); } else { go_next(); } }}>
                 <Text style={styles.primaryText}>{"Start styling" if step == TOTAL else "Let's go" if step == 0 else "Continue"}</Text>
-                <Text style={styles.arrow}>→</Text>
+                <AppIcon name="arrow-right" size={18} color={C["accentText"]}/>
             </Pressable>
         </View>
         {step in OPTIONAL_STEPS and <Pressable style={styles.skip} onPress={lambda { go_next(); }}><Text style={styles.skipText}>Skip this question</Text></Pressable>}

@@ -110,7 +110,6 @@ def:pub StorageTestScreen -> JsxElement {
                 style_tags=result.style_tags,
                 occasions=result.occasions,
                 warmth=result.warmth,
-                waterproof=result.waterproof,
                 description=result.description,
                 image_path=item.image_path,
                 source_image_url=item.source_image_url,
@@ -302,7 +301,7 @@ def:pub StorageTestScreen -> JsxElement {
                         <Text style={test_styles.metadataValue}>{"Colors: " + join_or_dash(item.colors)}</Text>
                         <Text style={test_styles.metadataValue}>{"Mood: " + join_or_dash(item.style_tags)}</Text>
                         <Text style={test_styles.metadataValue}>{"Best for: " + join_or_dash(item.occasions)}</Text>
-                        <Text style={test_styles.metadataValue}>{"Seasons: " + join_or_dash(item.seasons) + "  ·  Warmth " + str(item.warmth) + "/5" + ("  ·  Waterproof" if item.waterproof else "")}</Text>
+                        <Text style={test_styles.metadataValue}>{"Seasons: " + join_or_dash(item.seasons) + "  ·  Warmth " + str(item.warmth) + "/5"}</Text>
                         {(<Text style={test_styles.metadataNote}>{item.description}</Text>) if item.description else None}
                     </View>
                 ) if is_analyzed(item) else (<Text style={test_styles.metadataNote}>Not analyzed yet.</Text>)}

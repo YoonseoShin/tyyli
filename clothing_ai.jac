@@ -1,8 +1,4 @@
-"""Server-side AI analysis that turns a clothing photo into styling metadata.
-
-Claude (Anthropic) is the default provider. Set CLOTHING_AI_PROVIDER=gemini to use
-the original Gemini path. Both return the same `ClothingAnalysis` shape.
-"""
+"""Server-side Claude analysis that turns a clothing photo into styling metadata."""
 import json;
 import os;
 import random;
@@ -19,7 +15,6 @@ obj:pub ClothingAnalysis {
         occasions: list[str] = [],
         seasons: list[str] = [],
         warmth: int = 0,
-        waterproof: bool = False,
         description: str = "";
 }
 
@@ -41,7 +36,6 @@ def _analysis_schema -> dict[str, any] {
                 "items": {"type": "string", "enum": ["spring", "summer", "fall", "winter"]}
             },
             "warmth": {"type": "integer", "minimum": 0, "maximum": 5},
-            "waterproof": {"type": "boolean"},
             "description": {"type": "string"}
         },
         "required": [
@@ -52,7 +46,6 @@ def _analysis_schema -> dict[str, any] {
             "occasions",
             "seasons",
             "warmth",
-            "waterproof",
             "description"
         ],
         "additionalProperties": False
@@ -73,7 +66,7 @@ def _image_content(image_data: str) -> dict[str, any] {
         if not encoded_image {
             raise ValueError("The selected image is empty.");
         }
-        # Gemini inline requests, including the prompt, must stay under 20 MB.
+        # Keep inline image requests small enough for the server and model API.
         if len(encoded_image) > 26000000 {
             raise ValueError("The selected image is too large for AI analysis.");
         }
@@ -96,47 +89,11 @@ def _image_content(image_data: str) -> dict[str, any] {
 }
 
 
-def _response_text(response_data: dict[str, any]) -> str {
-    interaction_data = response_data.get("interaction", response_data) as dict[str, any];
-    steps = interaction_data.get("steps", []) as list;
-    for raw_step in steps {
-        step = raw_step as dict[str, any];
-        if step.get("type") != "model_output" {
-            continue;
-        }
-        content_blocks = step.get("content", []) as list;
-        for raw_block in content_blocks {
-            block = raw_block as dict[str, any];
-            if block.get("type") == "text" and block.get("text") {
-                return block.get("text") as str;
-            }
-        }
-    }
-    raise ValueError("Gemini returned no clothing metadata.");
-}
-
-
 def _string_list(value: any) -> list[str] {
     if not isinstance(value, list) {
         return [];
     }
     return [str(item) for item in value if item is not None];
-}
-
-
-def _send_gemini_request(payload: dict[str, any], api_key: str) -> dict[str, any] {
-    request = Request(
-        "https://generativelanguage.googleapis.com/v1beta/interactions",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "x-goog-api-key": api_key
-        },
-        method="POST"
-    );
-    with urlopen(request, timeout=60) as response {
-        return json.loads(response.read().decode("utf-8")) as dict[str, any];
-    }
 }
 
 
@@ -180,7 +137,7 @@ def _claude_schema -> dict[str, any] {
 
 
 def _claude_image_content(image_data: str) -> dict[str, any] {
-    # Reuses the Gemini parser for validation, then reshapes to Claude's block format.
+    # Parse and validate the app image, then shape it as a Claude image block.
     block = _image_content(image_data);
     if "uri" in block {
         return {"type": "image", "source": {"type": "url", "url": block["uri"]}};
@@ -240,7 +197,6 @@ def _analysis_from_metadata(metadata: dict[str, any]) -> ClothingAnalysis {
         occasions=_string_list(metadata.get("occasions", [])),
         seasons=_string_list(metadata.get("seasons", [])),
         warmth=warmth,
-        waterproof=bool(metadata.get("waterproof", False)),
         description=str(metadata.get("description", ""))
     );
 }
@@ -249,8 +205,8 @@ def _analysis_from_metadata(metadata: dict[str, any]) -> ClothingAnalysis {
 glob ANALYSIS_PROMPT: str = (
     "Analyze the single main clothing item in this photo for a personal styling app. "
     "If several items are visible, describe the most prominent one. Use short English values. "
-    "Name visible colors from most dominant to least dominant. Only mark waterproof true when "
-    "rain resistance is visually clear. Rate warmth from 1 (very light) to 5 (very warm), but use 0 "
+    "Name visible colors from most dominant to least dominant. Rate warmth from 1 (very light) to "
+    "5 (very warm), but use 0 "
     "for items that add no warmth, such as bags, jewellery, belts, sunglasses, and other non-wearable "
     "accessories (a scarf or hat does add warmth). "
     "Describe material, pattern, fit, and styling details in one concise sentence."
@@ -303,6 +259,8 @@ def _analyze_with_claude(image_data: str) -> ClothingAnalysis {
             }
         } except URLError as e {
             last_error = "Could not reach Claude: " + str(e.reason);
+        } except TimeoutError {
+            last_error = "Claude took too long to answer.";
         }
         if attempt < 2 {
             time.sleep(min(4.0, float(2 ** attempt)) + random.uniform(0.0, 0.5));
@@ -316,81 +274,5 @@ def _analyze_with_claude(image_data: str) -> ClothingAnalysis {
 
 
 def:pub analyze_clothing_image(image_data: str) -> ClothingAnalysis {
-    provider = _dev_setting("CLOTHING_AI_PROVIDER", "claude").lower();
-    if provider == "gemini" {
-        return _analyze_with_gemini(image_data);
-    }
     return _analyze_with_claude(image_data);
-}
-
-
-def _analyze_with_gemini(image_data: str) -> ClothingAnalysis {
-    api_key = _dev_setting("GEMINI_API_KEY");
-    if not api_key {
-        raise ValueError(
-            "GEMINI_API_KEY is not set on the Jac server. "
-            "Add it to .env in the project folder (see .env.example) or export it, then restart the server."
-        );
-    }
-
-    model = _dev_setting("GEMINI_MODEL", "gemini-3.6-flash");
-    fallback_model = _dev_setting("GEMINI_FALLBACK_MODEL", "gemini-3.8-flash");
-    payload = {
-        "model": model,
-        "input": [
-            {
-                "type": "text",
-                "text": ANALYSIS_PROMPT
-            },
-            _image_content(image_data)
-        ],
-        "response_format": {
-            "type": "text",
-            "mime_type": "application/json",
-            "schema": _analysis_schema()
-        },
-        "generation_config": {
-            "thinking_level": "low",
-            "max_output_tokens": 700
-        },
-        "store": False
-    };
-
-    # Retry temporary capacity/rate errors, then use an older stable Flash
-    # model once so a short-lived traffic spike does not break the app flow.
-    models = [model, model, model];
-    if fallback_model and fallback_model != model {
-        models.append(fallback_model);
-    }
-    last_error = "";
-    for attempt in range(len(models)) {
-        selected_model = models[attempt];
-        payload["model"] = selected_model;
-        try {
-            response_data = _send_gemini_request(payload, api_key);
-            metadata = json.loads(_response_text(response_data)) as dict[str, any];
-            return _analysis_from_metadata(metadata);
-        } except HTTPError as e {
-            error_body = e.read().decode("utf-8", errors="replace");
-            last_error = (
-                "Gemini request failed for " + selected_model + " (HTTP "
-                + str(e.code) + "). " + error_body[:500]
-            );
-            if e.code not in [408, 429, 500, 502, 503, 504] {
-                raise RuntimeError(last_error);
-            }
-        } except URLError as e {
-            last_error = "Could not reach Gemini: " + str(e.reason);
-        }
-
-        if attempt < len(models) - 1 {
-            delay = min(4.0, float(2 ** attempt)) + random.uniform(0.0, 0.5);
-            time.sleep(delay);
-        }
-    }
-
-    raise RuntimeError(
-        "Gemini is temporarily unavailable after automatic retries. "
-        "Please tap Analyze again in a moment. " + last_error
-    );
 }

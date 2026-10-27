@@ -1,22 +1,54 @@
-"""Calendar events used to match outfits to the day's plans.
-
-PLACEHOLDER: returns sample events. Replace `get_week_events` with Google
-Calendar (OAuth + events.list) and classify each event's `kind` and
-`formality` (1 = very casual ... 5 = formal), e.g. with an AI call on the
-server. Screens and the outfit service only depend on `CalendarEvent`.
-"""
+"""Editable local test events used until Google Calendar is connected."""
+import from "@react-native-async-storage/async-storage" { default as AsyncStorage }
 import from ..models { CalendarEvent }
 import from .dates { date_key }
 
 
+glob TEST_EVENTS_KEY: str = "@tyyli/test-calendar-events/v1";
+
+
+def _event_from_json(raw: dict[str, any]) -> CalendarEvent {
+    return CalendarEvent(
+        event_id=str(raw.get("event_id") or "event-" + str(Date.now())),
+        title=str(raw.get("title") or "Untitled plan"),
+        date=str(raw.get("date") or date_key(0)),
+        start_time=str(raw.get("start_time") or ""),
+        kind=str(raw.get("kind") or "other"),
+        formality=max(1, min(5, int(raw.get("formality") or 2))),
+        is_major=bool(raw.get("is_major")) if raw.get("is_major") is not None else True
+    );
+}
+
+
+def _event_to_json(event: CalendarEvent) -> dict[str, any] {
+    return {
+        "event_id": event.event_id,
+        "title": event.title,
+        "date": event.date,
+        "start_time": event.start_time,
+        "kind": event.kind,
+        "formality": event.formality,
+        "is_major": event.is_major
+    };
+}
+
+
 async def:pub get_week_events -> list[CalendarEvent] {
-    return [
-        CalendarEvent(event_id="sample-1", title="Team meeting", date=date_key(0), start_time="10:00", kind="work", formality=4),
-        CalendarEvent(event_id="sample-2", title="Gym", date=date_key(0), start_time="18:30", kind="exercise", formality=1),
-        CalendarEvent(event_id="sample-3", title="Dinner with friends", date=date_key(1), start_time="19:00", kind="social", formality=2),
-        CalendarEvent(event_id="sample-4", title="Class presentation", date=date_key(3), start_time="13:00", kind="school", formality=3),
-        CalendarEvent(event_id="sample-5", title="Wedding", date=date_key(5), start_time="16:00", kind="formal", formality=5)
-    ];
+    raw: str | None = await AsyncStorage.getItem(TEST_EVENTS_KEY);
+    if raw is not None {
+        try {
+            values = JSON.parse(raw) as list;
+            events = [_event_from_json(value as dict[str, any]) for value in values if value is not None];
+            # Remove the sample records created by earlier development builds.
+            return [event for event in events if not event.event_id.startswith("sample-")];
+        } except Exception {}
+    }
+    return [];
+}
+
+
+async def:pub save_week_events(events: list[CalendarEvent]) {
+    await AsyncStorage.setItem(TEST_EVENTS_KEY, JSON.stringify([_event_to_json(event) for event in events]));
 }
 
 

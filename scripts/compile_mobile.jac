@@ -19,6 +19,11 @@ with entry {
     project_dir = Path(__file__).resolve().parent.parent;
     entry_file = project_dir / "main.jac";
     rn_dir = resolve_rn_project_dir(project_dir);
+    api_shim = rn_dir / "__jacApiBase.js";
+    # Jac's native entry writer recreates this file. Keep an already-injected
+    # device-visible API URL so a later client rebuild cannot silently turn
+    # server calls into relative requests against Metro.
+    existing_api_shim = api_shim.read_text(encoding="utf-8") if api_shim.exists() else "";
 
     builder = Jac.get_client_bundle_builder();
     if not isinstance(builder, ViteClientBundleBuilder) {
@@ -45,5 +50,8 @@ with entry {
     );
     stage_native_image_assets(rn_dir / "jac-src", rn_dir);
     write_native_entry(rn_dir);
+    if "globalThis.__JAC_API_BASE_URL__ =" in existing_api_shim {
+        api_shim.write_text(existing_api_shim, encoding="utf-8");
+    }
     print("Jac mobile client compiled.");
 }

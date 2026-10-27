@@ -3,7 +3,7 @@
 This branch contains a minimal mobile test view for Tyyli's local wardrobe
 storage flow. A user can take photos, choose multiple photos from the device
 library, or provide an image URL. Each image is copied into the app's private
-file storage, while its clothing record and Gemini-generated styling metadata
+file storage, while its clothing record and Claude-generated styling metadata
 are stored in an on-device SQLite database.
 
 The data survives app restarts on the same device. Removing an item deletes
@@ -12,29 +12,31 @@ removes this local data.
 
 ## App structure (prototype skeleton)
 
-The app is a minimal, unstyled skeleton so UI design can be layered on later.
-On first launch it shows the style quiz; after that it opens to five tabs.
+The UI follows the Figma prototype (Home, Outfit Picks, Closet, History). On
+first launch it shows the style quiz. The bottom bar has Home, Closet, a round
+center button that opens the stylist chat, History, and Profile.
 
 ```
 main.jac                  entry point -> screens/AppShell
 screens/
   AppShell.jac            loads data, onboarding gate, tab + page switching
-  HomeScreen.jac          today's weather, outfit, plans, closet summary
-  ClosetScreen.jac        add photos (camera / gallery / URL), grid, item detail
-  OutfitsScreen.jac       Today / This week toggle
-  TodayOutfitScreen.jac   today's outfit with each piece
-  WeekOutfitScreen.jac    one outfit per day for 7 days
+  HomeScreen.jac          weather, today's schedule, AI outfit picks, stylist shortcut
+  ClosetScreen.jac        search + category grid, "Add new item" panel, item detail
+  OutfitsScreen.jac       Outfit Picks: sticker board, style score, swaps, Wearing Today
+  HistoryScreen.jac       outfits marked "Wearing Today", newest first
+  WeekOutfitScreen.jac    one outfit per day for 7 days (linked from Outfit Picks)
   CalendarScreen.jac      this week's events and their formality
   ChatScreen.jac          stylist chat
   ProfileScreen.jac       style profile from the quiz, link to the storage test
-components/               StyleProfileOnboarding, TabBar, OutfitCard, WeatherCard, EventRow
+components/               StyleProfileOnboarding, TabBar, OutfitCollage (sticker board), OutfitCard, ...
 services/                 app logic the screens call (runs on the device)
-  weather_service.jac     PLACEHOLDER sample weather
+  weather_service.jac     Open-Meteo weather using the device location
   calendar_service.jac    PLACEHOLDER sample events (Google Calendar later)
-  outfit_service.jac      PLACEHOLDER rule-based outfit picker (AI later)
+  outfit_service.jac      explainable outfit recommendation engine
   chat_service.jac        PLACEHOLDER canned replies (AI later)
   wardrobe_actions.jac    add / analyze / delete closet items
-models.jac                WeatherInfo, CalendarEvent, Outfit, ChatMessage
+  history_store.jac       outfit history saved on the device (AsyncStorage)
+models.jac                WeatherInfo, CalendarEvent, Outfit, ChatMessage, HistoryEntry
 storage.jac               StyleProfile, ClothingItem + on-device persistence
 ui/kit.jac                design tokens and the shared stylesheet
 ```
@@ -43,36 +45,45 @@ ui/kit.jac                design tokens and the shared stylesheet
   those names.
 - **To connect a real service:** replace the body of the matching
   `services/*.jac` function and keep its return type. Screens don't change.
-- An outfit has the user's own clothing photos, a style name, a reason, and a
-  description (see `Outfit` in `models.jac`).
+- The outfit engine asks Claude to evaluate clothing metadata against weather,
+  calendar formality, style preferences, season, rain protection, and color
+  compatibility. Google Calendar can replace the sample event provider later
+  without changing the recommendation interface.
+- An outfit has the user's own clothing photos, a style name, match reasons,
+  a confidence score, and an explanation (see `Outfit` in `models.jac`).
 - `services.*` is pinned to the client in `jac.toml` (`[placement.pins]`), so
   these helpers run on the device and are not server endpoints.
 
 ## Requirements
 
 - Jac `0.37.23` or newer
-- Expo Go, an iOS simulator, or an Android emulator
-- A Gemini API key created in Google AI Studio
+- Expo Go for SDK 58, an iOS simulator, or an Android emulator
+- An Anthropic API key
 - For a physical phone, the phone and development computer must be on the
   same local network
 
-Do not commit a real Gemini API key. For development, copy `.env.example` to
+Do not commit a real Anthropic API key. For development, copy `.env.example` to
 `.env` (gitignored) and put your key there. The server reads `.env` from the
 folder it is started in; a key exported in the shell takes precedence.
 
 ```bash
-cp .env.example .env   # then edit GEMINI_API_KEY in .env
+cp .env.example .env   # then edit ANTHROPIC_API_KEY in .env
 ```
 
 ## First-time setup
 
 ```bash
-git checkout app-skeleton
+git pull
 jac setup
 ```
 
 `jac setup` creates the ignored Expo project under `.jac/mobile-rn` and
 installs the native dependencies declared in `jac.toml`.
+
+Jac currently scaffolds an SDK 57 package before applying project-specific
+dependencies. The first `./scripts/dev_mobile.sh` run upgrades that generated
+package to SDK 58 so it matches the current Expo Go app. Later runs reuse the
+installed SDK 58 dependencies.
 
 ## Run the native app
 
@@ -104,7 +115,7 @@ export JAC_RN_DEV_HOST="your-computer-lan-ip"
 1. Add one or more images using **Take photo**, **From gallery**, or an image
    URL.
 2. Confirm every item appears in **My closet** with an `App storage:` path.
-3. Wait for the Gemini metadata or tap **Analyze** again if Gemini returns a
+3. Wait for the Claude metadata or tap **Analyze** again if Claude returns a
    temporary `503` capacity error.
 4. Close and reopen the app. The saved items should still appear.
 5. Tap **Delete** and confirm the item is removed.

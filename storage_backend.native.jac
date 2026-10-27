@@ -19,6 +19,7 @@ async def initialize_backend -> any {
             PRAGMA journal_mode = WAL;
             CREATE TABLE IF NOT EXISTS style_profile (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
+                name TEXT NOT NULL DEFAULT '',
                 preferred_styles TEXT NOT NULL,
                 preferred_colors TEXT NOT NULL,
                 occasions TEXT NOT NULL,
@@ -50,7 +51,6 @@ async def initialize_backend -> any {
                 style_tags TEXT NOT NULL,
                 occasions TEXT NOT NULL DEFAULT '[]',
                 warmth INTEGER NOT NULL DEFAULT 0,
-                waterproof INTEGER NOT NULL DEFAULT 0,
                 description TEXT NOT NULL DEFAULT '',
                 image_path TEXT NOT NULL,
                 source_image_url TEXT NOT NULL,
@@ -71,7 +71,7 @@ async def initialize_backend -> any {
         """);
         profile_columns = await backend_handle.getAllAsync("PRAGMA table_info(style_profile)");
         profile_column_names = [column["name"] for column in profile_columns];
-        for text_column in ["shop_section", "height", "weight", "top_size", "bottom_size", "shoe_size", "body_shape", "units", "bust", "waist", "hips", "temperature_unit"] {
+        for text_column in ["name", "shop_section", "height", "weight", "top_size", "bottom_size", "shoe_size", "body_shape", "units", "bust", "waist", "hips", "temperature_unit"] {
             if text_column not in profile_column_names {
                 await backend_handle.execAsync("ALTER TABLE style_profile ADD COLUMN " + text_column + " TEXT NOT NULL DEFAULT '';");
             }
@@ -116,6 +116,7 @@ async def:pub load_payload -> dict[str, any] {
     outfit_row = await db.getFirstAsync("SELECT * FROM latest_outfit WHERE id = 1");
 
     profile = None if profile_row is None else {
+        "name": profile_row["name"] or "",
         "preferred_styles": decode_json(profile_row["preferred_styles"], []),
         "preferred_colors": decode_json(profile_row["preferred_colors"], []),
         "occasions": decode_json(profile_row["occasions"], []),
@@ -147,7 +148,6 @@ async def:pub load_payload -> dict[str, any] {
         "style_tags": decode_json(row["style_tags"], []),
         "occasions": decode_json(row["occasions"], []),
         "warmth": row["warmth"],
-        "waterproof": row["waterproof"] == 1,
         "description": row["description"],
         "image_path": row["image_path"],
         "source_image_url": row["source_image_url"],
@@ -172,17 +172,18 @@ async def:pub save_profile_payload(profile: dict[str, any]) {
     db = await initialize_backend();
     await db.runAsync("""
         INSERT INTO style_profile (
-            id, preferred_styles, preferred_colors, occasions, inspiration, mbti, zodiac,
+            id, name, preferred_styles, preferred_colors, occasions, inspiration, mbti, zodiac,
             shop_section, height, weight, top_size, bottom_size, shoe_size, body_shape,
             units, bust, waist, hips, brand_sizes, temperature_unit,
             favorite_stores, favorite_brands
         ) VALUES (
-            1, $preferred_styles, $preferred_colors, $occasions, $inspiration, $mbti, $zodiac,
+            1, $name, $preferred_styles, $preferred_colors, $occasions, $inspiration, $mbti, $zodiac,
             $shop_section, $height, $weight, $top_size, $bottom_size, $shoe_size, $body_shape,
             $units, $bust, $waist, $hips, $brand_sizes, $temperature_unit,
             $favorite_stores, $favorite_brands
         )
         ON CONFLICT(id) DO UPDATE SET
+            name = excluded.name,
             preferred_styles = excluded.preferred_styles,
             preferred_colors = excluded.preferred_colors,
             occasions = excluded.occasions,
@@ -205,6 +206,7 @@ async def:pub save_profile_payload(profile: dict[str, any]) {
             favorite_stores = excluded.favorite_stores,
             favorite_brands = excluded.favorite_brands
     """, {
+        "$name": profile.get("name", "") or "",
         "$preferred_styles": JSON.stringify(profile["preferred_styles"]),
         "$preferred_colors": JSON.stringify(profile["preferred_colors"]),
         "$occasions": JSON.stringify(profile["occasions"]),
@@ -234,11 +236,11 @@ async def:pub save_clothing_payload(item: dict[str, any]) {
     db = await initialize_backend();
     await db.runAsync("""
         INSERT INTO clothes (
-            id, name, category, colors, seasons, style_tags, occasions, warmth, waterproof,
+            id, name, category, colors, seasons, style_tags, occasions, warmth,
             description, image_path, source_image_url, source_product_url,
             brand, price, original_image_path, lookup_status, lookup_note, created_at
         ) VALUES (
-            $id, $name, $category, $colors, $seasons, $style_tags, $occasions, $warmth, $waterproof,
+            $id, $name, $category, $colors, $seasons, $style_tags, $occasions, $warmth,
             $description, $image_path, $source_image_url, $source_product_url,
             $brand, $price, $original_image_path, $lookup_status, $lookup_note, $created_at
         )
@@ -250,7 +252,6 @@ async def:pub save_clothing_payload(item: dict[str, any]) {
             style_tags = excluded.style_tags,
             occasions = excluded.occasions,
             warmth = excluded.warmth,
-            waterproof = excluded.waterproof,
             description = excluded.description,
             image_path = excluded.image_path,
             source_image_url = excluded.source_image_url,
@@ -270,7 +271,6 @@ async def:pub save_clothing_payload(item: dict[str, any]) {
         "$style_tags": JSON.stringify(item["style_tags"]),
         "$occasions": JSON.stringify(item["occasions"]),
         "$warmth": item["warmth"],
-        "$waterproof": 1 if item["waterproof"] else 0,
         "$description": item["description"] or "",
         "$image_path": item["image_path"],
         "$source_image_url": item["source_image_url"],

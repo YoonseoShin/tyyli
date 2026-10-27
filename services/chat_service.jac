@@ -20,7 +20,6 @@ def _closet_line(item: ClothingItem) -> str {
     if item.occasions { line = line + " | for: " + _join(item.occasions); }
     if item.seasons { line = line + " | seasons: " + _join(item.seasons); }
     if item.warmth > 0 { line = line + " | warmth " + str(item.warmth) + "/5"; }
-    if item.waterproof { line = line + " | waterproof"; }
     if item.description { line = line + " | " + item.description; }
     return line;
 }
