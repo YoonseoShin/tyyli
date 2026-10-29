@@ -1,6 +1,7 @@
 """The user's style profile from onboarding."""
 import from "@jac/mobui" { Pressable, ScrollView, Text, View }
 import from ..storage { StyleProfile }
+import from ..theme { SERIF, indexed }
 import from ..ui.kit { ui }
 
 
@@ -21,10 +22,20 @@ def:pub ProfileScreen(
     profile: StyleProfile | None,
     clothes_count: int,
     on_edit_profile: Callable[[], None],
-    on_open_storage_test: Callable[[], None]
+    on_open_storage_test: Callable[[], None],
+    on_reset: Callable[[], None] | None = None
 ) -> JsxElement {
     return <ScrollView style={ui.screen} contentContainerStyle={ui.page}>
         <Text style={ui.title}>Profile</Text>
+
+        {(<View style={[ui.card, {"alignItems": "center", "gap": 10}]}>
+            <Text style={ui.label}>YOUR STYLE</Text>
+            <Text style={{"fontFamily": SERIF, "fontSize": 34, "color": "#3B2A1E", "textAlign": "center"}}>{profile.style_name}</Text>
+            <Text style={[ui.muted, {"textAlign": "center"}]}>{profile.style_description}</Text>
+            {(<View style={{"flexDirection": "row", "borderRadius": 6, "overflow": "hidden", "borderWidth": 1, "borderColor": "#EAD9CC"}}>
+                {[<View key={pair[0]} style={{"width": 40, "height": 40, "backgroundColor": pair[1]}}/> for pair in indexed(profile.style_palette)]}
+            </View>) if profile.style_palette else None}
+        </View>) if profile and profile.style_name else None}
 
         <View style={ui.card}>
             <ProfileRow label="STYLES" value={or_dash(profile.preferred_styles) if profile else "-"}/>
@@ -52,6 +63,10 @@ def:pub ProfileScreen(
             <Pressable style={[ui.button, ui.buttonGhost]} onPress={lambda { on_open_storage_test(); }}>
                 <Text style={[ui.buttonText, ui.buttonGhostText]}>Open storage test screen</Text>
             </Pressable>
+            {(<Pressable style={[ui.button, ui.buttonDanger]} onPress={lambda { on_reset(); }}>
+                <Text style={ui.buttonText}>Reset app data (back to onboarding)</Text>
+            </Pressable>) if on_reset else None}
+            <Text style={ui.muted}>Reset deletes the style profile and every closet item on this device.</Text>
         </View>
     </ScrollView>;
 }

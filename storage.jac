@@ -30,7 +30,13 @@ obj:pub StyleProfile {
         brand_sizes: list[str] = [],
         temperature_unit: str = "F",
         favorite_stores: list[str] = [],
-        favorite_brands: list[str] = [];
+        favorite_brands: list[str] = [],
+        # Result of the onboarding quiz: the named style, the stylist's blurb,
+        # five hex colours, and anything the user wrote in their own words.
+        style_name: str = "",
+        style_description: str = "",
+        style_palette: list[str] = [],
+        style_notes: str = "";
 }
 
 
@@ -117,7 +123,11 @@ def _profile_from_payload(payload: dict[str, any]) -> StyleProfile {
         brand_sizes=_string_list(payload, "brand_sizes"),
         temperature_unit=_string_value(payload, "temperature_unit", "F") or "F",
         favorite_stores=_string_list(payload, "favorite_stores"),
-        favorite_brands=_string_list(payload, "favorite_brands")
+        favorite_brands=_string_list(payload, "favorite_brands"),
+        style_name=_string_value(payload, "style_name"),
+        style_description=_string_value(payload, "style_description"),
+        style_palette=_string_list(payload, "style_palette"),
+        style_notes=_string_value(payload, "style_notes")
     );
 }
 
@@ -211,7 +221,11 @@ async def:pub save_profile(profile: StyleProfile) -> LocalUserData {
         "brand_sizes": profile.brand_sizes,
         "temperature_unit": profile.temperature_unit,
         "favorite_stores": profile.favorite_stores,
-        "favorite_brands": profile.favorite_brands
+        "favorite_brands": profile.favorite_brands,
+        "style_name": profile.style_name,
+        "style_description": profile.style_description,
+        "style_palette": profile.style_palette,
+        "style_notes": profile.style_notes
     });
     return await load_local_data();
 }

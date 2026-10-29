@@ -12,7 +12,7 @@ import from ..services.chat_service { send_chat_message }
 import from ..services.dates { date_key }
 import from ..services.outfit_service { build_outfit, build_week }
 import from ..services.weather_service { get_today_weather }
-import from ..storage { LocalUserData, StyleProfile, load_local_data, save_profile }
+import from ..storage { LocalUserData, StyleProfile, clear_local_data, load_local_data, save_profile }
 import from ..storage_test { StorageTestScreen }
 import from ..ui.kit { ui }
 import from .CalendarScreen { CalendarScreen }
@@ -84,6 +84,15 @@ def:pub AppShell -> JsxElement {
         messages = messages[:index];
     }
 
+    # Developer reset: wipe everything on the device and start from the splash.
+    async def reset_app_data {
+        await clear_local_data();
+        messages = [];
+        route = "";
+        tab = "home";
+        await reload();
+    }
+
     async def finish_onboarding(profile: StyleProfile) {
         data = await save_profile(profile);
         route = "";
@@ -111,7 +120,7 @@ def:pub AppShell -> JsxElement {
 
     # First launch (no saved profile) or "Redo style quiz".
     if data.profile is None or route == "onboarding" {
-        return <StyleProfileOnboarding initial={data.profile} on_finish={lambda (p: StyleProfile) { finish_onboarding(p); }}/>;
+        return <StyleProfileOnboarding initial={data.profile} on_finish={lambda (p: StyleProfile) { finish_onboarding(p); }} on_cancel={lambda { route = ""; }}/>;
     }
 
     if route == "calendar" {
@@ -140,7 +149,7 @@ def:pub AppShell -> JsxElement {
             {(<ClosetScreen clothes={data.clothes} on_changed={lambda { reload(); }}/>) if tab == "closet" else None}
             {(<OutfitsScreen today={today_outfit} week={week} clothes={data.clothes}/>) if tab == "outfits" else None}
             {(<ChatScreen messages={messages} sending={sending} clothes={data.clothes} on_send={lambda (t: str) { send_message(t); }} on_edit={lambda (i: int) { edit_message(i); }}/>) if tab == "chat" else None}
-            {(<ProfileScreen profile={data.profile} clothes_count={len(data.clothes)} on_edit_profile={lambda { route = "onboarding"; }} on_open_storage_test={lambda { route = "storage_test"; }}/>) if tab == "profile" else None}
+            {(<ProfileScreen profile={data.profile} clothes_count={len(data.clothes)} on_edit_profile={lambda { route = "onboarding"; }} on_open_storage_test={lambda { route = "storage_test"; }} on_reset={lambda { reset_app_data(); }}/>) if tab == "profile" else None}
         </View>
         {(<TabBar active={tab} on_select={lambda (t: str) { navigate(t); }}/>) if keyboard_height <= 0 else None}
     </View>;
