@@ -10,7 +10,8 @@ import from .storage_backend {
 
 
 obj:pub StyleProfile {
-    has preferred_styles: list[str] = [],
+    has name: str = "",
+        preferred_styles: list[str] = [],
         preferred_colors: list[str] = [],
         occasions: list[str] = [],
         inspiration: str = "",
@@ -30,7 +31,13 @@ obj:pub StyleProfile {
         brand_sizes: list[str] = [],
         temperature_unit: str = "F",
         favorite_stores: list[str] = [],
-        favorite_brands: list[str] = [];
+        favorite_brands: list[str] = [],
+        # Result of the onboarding quiz: the named style, the stylist's blurb,
+        # five hex colours, and anything the user wrote in their own words.
+        style_name: str = "",
+        style_description: str = "",
+        style_palette: list[str] = [],
+        style_notes: str = "";
 }
 
 
@@ -43,7 +50,6 @@ obj:pub ClothingItem {
         style_tags: list[str] = [],
         occasions: list[str] = [],
         warmth: int = 0,
-        waterproof: bool = False,
         description: str = "",
         image_path: str = "",
         source_image_url: str = "",
@@ -89,14 +95,9 @@ def _int_value(payload: dict[str, any], key: str, fallback: int = 0) -> int {
 }
 
 
-def _bool_value(payload: dict[str, any], key: str) -> bool {
-    value = payload.get(key, False);
-    return bool(value) if isinstance(value, (bool, int)) else False;
-}
-
-
 def _profile_from_payload(payload: dict[str, any]) -> StyleProfile {
     return StyleProfile(
+        name=_string_value(payload, "name"),
         preferred_styles=_string_list(payload, "preferred_styles"),
         preferred_colors=_string_list(payload, "preferred_colors"),
         occasions=_string_list(payload, "occasions"),
@@ -117,7 +118,11 @@ def _profile_from_payload(payload: dict[str, any]) -> StyleProfile {
         brand_sizes=_string_list(payload, "brand_sizes"),
         temperature_unit=_string_value(payload, "temperature_unit", "F") or "F",
         favorite_stores=_string_list(payload, "favorite_stores"),
-        favorite_brands=_string_list(payload, "favorite_brands")
+        favorite_brands=_string_list(payload, "favorite_brands"),
+        style_name=_string_value(payload, "style_name"),
+        style_description=_string_value(payload, "style_description"),
+        style_palette=_string_list(payload, "style_palette"),
+        style_notes=_string_value(payload, "style_notes")
     );
 }
 
@@ -132,7 +137,6 @@ def _clothing_from_payload(payload: dict[str, any]) -> ClothingItem {
         style_tags=_string_list(payload, "style_tags"),
         occasions=_string_list(payload, "occasions"),
         warmth=_int_value(payload, "warmth"),
-        waterproof=_bool_value(payload, "waterproof"),
         description=_string_value(payload, "description"),
         image_path=_string_value(payload, "image_path"),
         source_image_url=_string_value(payload, "source_image_url"),
@@ -191,6 +195,7 @@ async def:pub load_local_data -> LocalUserData {
 
 async def:pub save_profile(profile: StyleProfile) -> LocalUserData {
     await save_profile_payload({
+        "name": profile.name,
         "preferred_styles": profile.preferred_styles,
         "preferred_colors": profile.preferred_colors,
         "occasions": profile.occasions,
@@ -211,7 +216,11 @@ async def:pub save_profile(profile: StyleProfile) -> LocalUserData {
         "brand_sizes": profile.brand_sizes,
         "temperature_unit": profile.temperature_unit,
         "favorite_stores": profile.favorite_stores,
-        "favorite_brands": profile.favorite_brands
+        "favorite_brands": profile.favorite_brands,
+        "style_name": profile.style_name,
+        "style_description": profile.style_description,
+        "style_palette": profile.style_palette,
+        "style_notes": profile.style_notes
     });
     return await load_local_data();
 }
@@ -227,7 +236,6 @@ async def:pub save_clothing_item(item: ClothingItem) -> LocalUserData {
         "style_tags": item.style_tags,
         "occasions": item.occasions,
         "warmth": item.warmth,
-        "waterproof": item.waterproof,
         "description": item.description,
         "image_path": item.image_path,
         "source_image_url": item.source_image_url,

@@ -4,13 +4,8 @@ Uses the public Open-Meteo API without an API key. It prefers the user's current
 coordinates on the device, falls back to a city lookup if available, and
 returns the same WeatherInfo shape the screens expect.
 """
-import from "expo-location" {
-    Accuracy,
-    getCurrentPositionAsync,
-    requestForegroundPermissionsAsync,
-}
-
 import from ..models { WeatherInfo }
+import from .location_adapter { get_device_coordinates }
 
 
 def:pub c_to_f(celsius: float) -> int {
@@ -77,15 +72,12 @@ async def _reverse_geocode_name(lat: float, lon: float) -> str {
 
 async def _device_coords() -> dict[str, any] {
     try {
-        permission = await requestForegroundPermissionsAsync();
-        print("Weather debug: permission status = " + str(permission.status));
-        if permission.status != "granted" {
+        raw_coords = await get_device_coordinates();
+        if raw_coords is None {
             raise ValueError("Location permission not granted");
         }
-
-        location = await getCurrentPositionAsync({"accuracy": Accuracy.Balanced});
-        lat = float(location.coords.latitude);
-        lon = float(location.coords.longitude);
+        lat = float(raw_coords.get("lat", 42.2808));
+        lon = float(raw_coords.get("lon", -83.7430));
         print("Weather debug: raw coords = " + str(lat) + ", " + str(lon));
 
         city_name = await _reverse_geocode_name(lat, lon);

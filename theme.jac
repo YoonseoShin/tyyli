@@ -1,59 +1,121 @@
-import from "@jac/mobui" { StyleSheet }
+"""Onboarding design system: a warm beige gradient, soft circles, serif
+headlines and dark pill buttons. Only the onboarding flow uses this file; the
+rest of the app styles itself from `ui/kit.jac`.
+"""
+import from "@jac/mobui" { Platform, StyleSheet }
 
-glob:pub S: dict[str, int] = {"xs": 5, "sm": 9, "md": 14, "lg": 20, "xl": 28},
-     R: dict[str, int] = {"sm": 10, "md": 16, "lg": 24, "pill": 999},
-     F: dict[str, int] = {"xs": 11, "sm": 13, "md": 15, "lg": 18, "xl": 29, "hero": 36};
 
-def:pub buildStyles(C: dict[str, str]) -> any {
-    return StyleSheet.create({
-        "screen": {"flex": 1, "backgroundColor": C["bg"]},
-        "page": {"paddingHorizontal": 24, "paddingTop": 22, "paddingBottom": 32, "gap": 20, "maxWidth": 520, "width": "100%", "alignSelf": "center"},
-        "topbar": {"flexDirection": "row", "alignItems": "center", "justifyContent": "space-between"},
-        "brand": {"fontSize": 27, "fontWeight": "bold", "color": C["ink"], "letterSpacing": -1.5},
-        "brandDot": {"fontSize": 27, "fontWeight": "bold", "color": C["accent"]},
-        "stepLabel": {"fontSize": F["xs"], "color": C["muted"], "letterSpacing": 1.2},
-        "progressTrack": {"height": 3, "backgroundColor": C["line"], "borderRadius": R["pill"], "overflow": "hidden"},
-        "progressFill": {"height": 3, "backgroundColor": C["accent"], "borderRadius": R["pill"]},
-        "progressPlaceholder": {"height": 3},
-        "heroArt": {"height": 148, "backgroundColor": C["soft"], "borderRadius": R["lg"], "alignItems": "center", "justifyContent": "center", "position": "relative", "overflow": "hidden"},
-        "artOrb": {"width": 112, "height": 112, "borderRadius": R["pill"], "backgroundColor": C["sage"], "alignItems": "center", "justifyContent": "center"},
-        "artSerif": {"fontSize": 76, "color": C["accent"], "fontWeight": "bold"},
-        "artNote": {"position": "absolute", "right": 18, "bottom": 19, "paddingVertical": 9, "paddingHorizontal": 13, "backgroundColor": C["surface"], "borderRadius": R["sm"]},
-        "artNoteText": {"fontSize": F["xs"], "color": C["ink"]},
-        "artFlower": {"position": "absolute", "left": 25, "top": 20},
-        "flowerText": {"fontSize": 27, "color": C["accent"]},
-        "headingBlock": {"gap": 8},
-        "eyebrow": {"fontSize": F["xs"], "color": C["accent"], "letterSpacing": 1.6, "fontWeight": "bold"},
-        "title": {"fontSize": F["xl"], "fontWeight": "bold", "color": C["ink"], "lineHeight": 35},
-        "subtitle": {"fontSize": F["md"], "color": C["muted"], "lineHeight": 22},
-        "welcomeNote": {"padding": 18, "backgroundColor": C["surface"], "borderRadius": R["md"], "gap": 8},
-        "welcomeQuote": {"fontSize": F["lg"], "color": C["ink"], "fontWeight": "bold"},
-        "noteSmall": {"fontSize": F["sm"], "color": C["muted"]},
-        "optionGrid": {"flexDirection": "row", "flexWrap": "wrap", "gap": 9},
-        "chip": {"paddingVertical": 12, "paddingHorizontal": 15, "borderRadius": R["pill"], "borderWidth": 1, "borderColor": C["line"], "backgroundColor": C["surface"]},
-        "chipOn": {"backgroundColor": C["accent"], "borderColor": C["accent"]},
-        "chipText": {"fontSize": F["sm"], "color": C["ink"]},
-        "chipTextOn": {"color": C["accentText"], "fontWeight": "bold"},
-        "inputCard": {"padding": 18, "gap": 12, "borderRadius": R["md"], "backgroundColor": C["surface"]},
-        "inputLabel": {"fontSize": F["xs"], "color": C["muted"], "letterSpacing": 1.1},
-        "input": {"paddingVertical": 15, "paddingHorizontal": 14, "borderRadius": R["sm"], "borderWidth": 1, "borderColor": C["line"], "color": C["ink"], "fontSize": F["md"]},
-        "inputHint": {"fontSize": F["xs"], "color": C["muted"]},
-        "summaryCard": {"padding": 19, "gap": 14, "borderRadius": R["md"], "backgroundColor": C["surface"]},
-        "summaryHeader": {"flexDirection": "row", "alignItems": "center", "gap": 10, "paddingBottom": 8, "borderBottomWidth": 1, "borderColor": C["line"]},
-        "summaryMark": {"fontSize": F["lg"], "color": C["accent"], "fontWeight": "bold"},
-        "summaryCaption": {"fontSize": F["xs"], "color": C["muted"], "letterSpacing": 1.2},
-        "summaryRow": {"gap": 4},
-        "summaryLabel": {"fontSize": F["xs"], "color": C["muted"], "letterSpacing": 1},
-        "summaryValue": {"fontSize": F["sm"], "color": C["ink"], "lineHeight": 20},
-        "summaryFooter": {"fontSize": F["xs"], "color": C["muted"], "paddingTop": 9, "borderTopWidth": 1, "borderColor": C["line"]},
-        "footer": {"flexDirection": "row", "alignItems": "center", "justifyContent": "space-between", "gap": 10, "marginTop": 4},
-        "backButton": {"paddingVertical": 14, "minWidth": 80},
-        "backText": {"fontSize": F["sm"], "color": C["muted"]},
-        "timeText": {"fontSize": 9, "color": C["muted"], "letterSpacing": 1},
-        "primaryButton": {"flex": 1, "flexDirection": "row", "alignItems": "center", "justifyContent": "space-between", "paddingVertical": 16, "paddingHorizontal": 19, "borderRadius": R["pill"], "backgroundColor": C["accent"]},
-        "primaryText": {"fontSize": F["md"], "color": C["accentText"], "fontWeight": "bold"},
-        "arrow": {"fontSize": F["lg"], "color": C["accentText"]},
-        "skip": {"alignItems": "center", "paddingVertical": 4},
-        "skipText": {"fontSize": F["sm"], "color": C["muted"], "textDecorationLine": "underline"}
-    });
+glob:pub C: dict[str, str] = {
+    "gradientTop": "#F0DFD3",
+    "gradientBottom": "#F9F3EE",
+    "circle": "#E6D2C4",
+    "ink": "#3B2A1E",
+    "copy": "#A4785C",
+    "copySoft": "#B9957D",
+    "line": "#E3D1C3",
+    "surface": "#FFFDFB",
+    "pill": "#3E2C21",
+    "pillText": "#FFF8F2",
+    "dotDone": "#C9A98F",
+    "swatchBorder": "#EAD9CC"
+};
+
+# Top to bottom bands of the background gradient (no gradient package on
+# either platform, so the backdrop stacks these as thin strips).
+glob:pub GRADIENT_BANDS: list[str] = [
+    "#F0DFD3", "#F1E0D5", "#F1E2D7", "#F2E3D8", "#F2E4DA", "#F3E6DC", "#F4E7DE", "#F4E8E0",
+    "#F5EAE1", "#F5EBE3", "#F6ECE5", "#F7EEE7", "#F7EFE9", "#F8F0EA", "#F8F2EC", "#F9F3EE"
+];
+
+glob:pub BAND_INDEX: list[int] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+
+# [["0", "#FFF"], ["1", "#000"], ...]: stable keys for colour swatch rows.
+def:pub indexed(values: list[str]) -> list[list[str]] {
+    pairs: list[list[str]] = [];
+    n = 0;
+    while n < len(values) {
+        pairs.append([str(n), values[n]]);
+        n = n + 1;
+    }
+    return pairs;
 }
+
+glob:pub SERIF: str = Platform.select({"ios": "Georgia", "android": "serif", "default": "Georgia, 'Times New Roman', serif"});
+
+glob:pub styles = StyleSheet.create({
+    "root": {"flex": 1, "backgroundColor": C["gradientBottom"], "overflow": "hidden"},
+    "scroll": {"flex": 1, "backgroundColor": "transparent"},
+    "page": {"flexGrow": 1, "paddingHorizontal": 28, "paddingTop": 14, "paddingBottom": 28, "maxWidth": 520, "width": "100%", "alignSelf": "center"},
+    "body": {"flex": 1},
+    "topbar": {"flexDirection": "row", "alignItems": "center", "justifyContent": "space-between", "height": 36},
+    "navText": {"fontSize": 15, "color": C["copy"]},
+    "counter": {"fontSize": 12, "color": C["copySoft"], "letterSpacing": 1.2},
+    "spacer": {"flex": 1, "minHeight": 24},
+
+    # Intro screens
+    "hero": {"flex": 1, "alignItems": "center", "justifyContent": "center", "gap": 18, "paddingVertical": 24},
+    "logo": {"fontFamily": SERIF, "fontSize": 68, "color": C["ink"], "letterSpacing": -1, "lineHeight": 78},
+    "logoSmall": {"fontFamily": SERIF, "fontSize": 56, "color": C["ink"], "letterSpacing": -1, "lineHeight": 66},
+    "tagline": {"fontSize": 16, "color": C["copy"], "marginTop": -10},
+    "lead": {"fontSize": 24, "lineHeight": 33, "color": C["copy"], "textAlign": "center", "paddingHorizontal": 8},
+    "leadSmall": {"fontSize": 19, "lineHeight": 28, "color": C["copy"], "textAlign": "center", "paddingHorizontal": 8},
+    "headline": {"fontFamily": SERIF, "fontSize": 32, "lineHeight": 40, "color": C["ink"], "textAlign": "center"},
+    "headlineSmall": {"fontFamily": SERIF, "fontSize": 26, "lineHeight": 33, "color": C["ink"], "textAlign": "center"},
+
+    # Question screens
+    "questionBlock": {"gap": 8, "marginTop": 22, "marginBottom": 22},
+    "questionRow": {"flexDirection": "row", "alignItems": "flex-start"},
+    "questionIndex": {"width": 34},
+    "questionBody": {"paddingLeft": 34, "gap": 4},
+    "questionNumber": {"fontSize": 13, "color": C["copySoft"], "letterSpacing": 1.2},
+    "question": {"fontFamily": SERIF, "fontSize": 25, "lineHeight": 32, "color": C["ink"]},
+    "hint": {"fontSize": 14, "lineHeight": 20, "color": C["copy"]},
+    "optionalTag": {"fontSize": 12, "color": C["copySoft"]},
+    "dots": {"flexDirection": "row", "gap": 6, "alignItems": "center", "justifyContent": "center", "marginTop": 2},
+    "dot": {"height": 5, "width": 5, "borderRadius": 999, "backgroundColor": C["line"]},
+    "dotDone": {"backgroundColor": C["dotDone"]},
+    "dotNow": {"backgroundColor": C["ink"], "width": 18},
+
+    # Options
+    "optionWrap": {"flexDirection": "row", "flexWrap": "wrap", "gap": 10},
+    "optionColumns": {"flexDirection": "row", "flexWrap": "wrap", "justifyContent": "space-between", "rowGap": 10},
+    "option": {"paddingVertical": 12, "paddingHorizontal": 18, "borderRadius": 999, "backgroundColor": C["surface"], "borderWidth": 1, "borderColor": C["line"]},
+    "optionOn": {"backgroundColor": C["pill"], "borderColor": C["pill"]},
+    "optionHalf": {"alignItems": "center", "paddingVertical": 14},
+    "optionText": {"fontSize": 15, "color": C["ink"]},
+    "optionTextOn": {"color": C["pillText"], "fontWeight": "bold"},
+    "optionTextWide": {"letterSpacing": 2.5, "fontSize": 16},
+
+    # Fields
+    "card": {"padding": 18, "gap": 16, "borderRadius": 24, "backgroundColor": C["surface"]},
+    "cardSoft": {"padding": 14, "gap": 8, "borderRadius": 16, "backgroundColor": "#F6EBE2"},
+    "label": {"fontSize": 11, "color": C["copy"], "letterSpacing": 1.3, "fontWeight": "bold"},
+    "input": {"paddingVertical": 14, "paddingHorizontal": 16, "borderRadius": 16, "borderWidth": 1, "borderColor": C["line"], "backgroundColor": C["surface"], "color": C["ink"], "fontSize": 16},
+    "textArea": {"minHeight": 150, "paddingVertical": 14, "paddingHorizontal": 16, "borderRadius": 18, "backgroundColor": "#FFFFFF", "color": C["ink"], "fontSize": 15, "lineHeight": 22, "textAlignVertical": "top"},
+    "small": {"fontSize": 13, "lineHeight": 19, "color": C["copy"]},
+    "link": {"fontSize": 13, "color": C["copy"], "fontWeight": "bold"},
+    "unitSwitch": {"flexDirection": "row", "borderRadius": 999, "backgroundColor": "#F1E4D9", "padding": 3},
+    "unitItem": {"paddingVertical": 6, "paddingHorizontal": 12, "borderRadius": 999},
+    "unitItemOn": {"backgroundColor": C["pill"]},
+    "unitText": {"fontSize": 12, "fontWeight": "bold", "color": C["ink"]},
+    "unitTextOn": {"color": C["pillText"]},
+    "shapeCard": {"borderRadius": 18, "borderWidth": 2, "borderColor": C["line"], "backgroundColor": C["surface"], "padding": 10, "alignItems": "center", "gap": 6},
+    "shapeCardOn": {"borderColor": C["pill"], "backgroundColor": "#F6EBE2"},
+
+    # Buttons
+    "pill": {"flexDirection": "row", "alignItems": "center", "justifyContent": "center", "gap": 14, "paddingVertical": 16, "paddingHorizontal": 30, "borderRadius": 999, "backgroundColor": C["pill"], "alignSelf": "center", "minWidth": 200},
+    "pillText": {"fontSize": 18, "color": C["pillText"], "fontWeight": "600"},
+    "pillArrow": {"fontSize": 22, "lineHeight": 24, "color": C["pillText"]},
+    "pillSmall": {"paddingVertical": 10, "paddingHorizontal": 18, "minWidth": 0, "gap": 8},
+    "pillSmallText": {"fontSize": 13},
+    "footer": {"alignItems": "center", "gap": 14, "paddingTop": 22},
+    "footnote": {"fontSize": 12, "color": C["copySoft"]},
+    "footnoteLink": {"textDecorationLine": "underline", "color": C["copy"]},
+
+    # Result
+    "resultName": {"fontFamily": SERIF, "fontSize": 44, "lineHeight": 52, "color": C["ink"], "textAlign": "center"},
+    "resultCopy": {"fontSize": 15, "lineHeight": 22, "color": C["copy"], "textAlign": "center", "paddingHorizontal": 6},
+    "swatches": {"flexDirection": "row", "alignSelf": "center", "borderRadius": 6, "overflow": "hidden", "borderWidth": 1, "borderColor": C["swatchBorder"]},
+    "swatch": {"width": 44, "height": 44},
+    "pulse": {"width": 120, "height": 120, "borderRadius": 999, "backgroundColor": C["circle"], "alignSelf": "center", "opacity": 0.7}
+});

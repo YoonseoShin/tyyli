@@ -48,7 +48,6 @@ All secrets live in environment variables on the server, never in the client:
 | style_tags | list[str] | shown as "Mood" |
 | occasions | list[str] | shown as "Best for" |
 | warmth | int | 0–5, 0 = adds no warmth (bags, jewellery) |
-| waterproof | bool | |
 | description | str | one sentence |
 | image_path | str | app-storage relative path `images/<id>.jpg` |
 | source_image_url | str | where a product photo came from |
@@ -93,7 +92,7 @@ guarded by `PRAGMA table_info`, so existing installs keep their data.
 
 - "← Closet" link, the photo (height 300, contain), the name as the title.
 - Metadata card: Type, Colors, Mood, Best for, Seasons, Warmth "n/5" (hidden when
-  warmth is 0; "· Waterproof" appended when true), description in muted text.
+  warmth is 0), description in muted text.
   Show "Not analyzed yet." before analysis.
 - Buttons (rows of two, ghost style): **Re-analyze** | **Find online**; **Crop & search**
   | **Search by name**; **Use my photo** (only when `original_image_path` is set) |
@@ -116,7 +115,7 @@ Server function `analyze_clothing_image(image_data: str) -> ClothingAnalysis`
 called from the client after each photo is added and from **Re-analyze**.
 
 `ClothingAnalysis`: name, category, colors, style_tags, occasions, seasons,
-warmth (int), waterproof (bool), description.
+warmth (int), description.
 
 Implementation (Python stdlib `urllib`, no SDK needed):
 
@@ -152,8 +151,7 @@ ANALYSIS_PROMPT:
 > Analyze the single main clothing item in this photo for a personal styling
 > app. If several items are visible, describe the most prominent one. Use short
 > English values. Name visible colors from most dominant to least dominant.
-> Only mark waterproof true when rain resistance is visually clear. Rate warmth
-> from 1 (very light) to 5 (very warm), but use 0 for items that add no warmth,
+> Rate warmth from 1 (very light) to 5 (very warm), but use 0 for items that add no warmth,
 > such as bags, jewellery, belts, sunglasses, and other non-wearable accessories
 > (a scarf or hat does add warmth). Describe material, pattern, fit, and styling
 > details in one concise sentence.
@@ -172,17 +170,16 @@ integers, so do not include them):
     "occasions": {"type": "array", "items": {"type": "string"}},
     "seasons": {"type": "array", "items": {"type": "string", "enum": ["spring","summer","fall","winter"]}},
     "warmth": {"type": "integer"},
-    "waterproof": {"type": "boolean"},
     "description": {"type": "string"}
   },
-  "required": ["name","category","colors","style_tags","occasions","seasons","warmth","waterproof","description"],
+  "required": ["name","category","colors","style_tags","occasions","seasons","warmth","description"],
   "additionalProperties": false
 }
 ```
 
 Client: `analyze_item(item)` reads the photo as a data URL, calls the function,
-saves name/category/colors/seasons/style_tags/occasions/warmth/waterproof/
-description onto the item (keeping all other fields). Show a 75 s client-side
+saves name/category/colors/seasons/style_tags/occasions/warmth/description
+onto the item (keeping all other fields). Show a 75 s client-side
 timeout message if the call hangs.
 
 ---

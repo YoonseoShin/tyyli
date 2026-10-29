@@ -1,5 +1,6 @@
 """A dropdown menu: a field that opens a scrollable list of options in a modal."""
 import from "@jac/mobui" { Modal, Pressable, ScrollView, Text, View, useWindowDimensions }
+import from .AppIcon { AppIcon }
 import from ..ui.kit { C, ui }
 
 
@@ -21,7 +22,7 @@ def:pub Dropdown(
             onPress={lambda { open = True; }}
         >
             <Text style={[ui.body, {"color": C.ink if value else C.muted}]}>{value or placeholder}</Text>
-            <Text style={ui.muted}>▾</Text>
+            <AppIcon name="menu-down" size={20} color={C.muted}/>
         </Pressable>
         {(<Text style={ui.muted}>{hint}</Text>) if hint else None}
         <Modal visible={open} transparent={True} animationType="fade" onRequestClose={lambda { open = False; }}>
@@ -46,7 +47,7 @@ def:pub Dropdown(
                                 onPress={lambda { on_pick(opt); open = False; }}
                             >
                                 <Text style={[ui.body, {"fontWeight": "bold" if opt == value else "normal"}]}>{opt}</Text>
-                                {(<Text style={ui.link}>✓</Text>) if opt == value else None}
+                                {(<AppIcon name="check" size={18} color={C.accent}/>) if opt == value else None}
                             </Pressable>
                             for opt in options
                         ]}

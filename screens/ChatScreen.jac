@@ -1,5 +1,5 @@
 """Chat with the styling assistant."""
-import from "@jac/mobui" { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, TextInput, View }
+import from "@jac/mobui" { ActivityIndicator, Image, Linking, Platform, Pressable, ScrollView, Text, TextInput, View }
 import from ..components.Button { Button }
 import from ..models { ChatMessage }
 import from ..photo_storage { resolve_clothing_image_uri }
@@ -20,14 +20,27 @@ def:pub ChatScreen(
     sending: bool,
     clothes: list[ClothingItem],
     on_send: Callable[[str], None],
-    on_edit: Callable[[int], None] | None = None
+    on_edit: Callable[[int], None] | None = None,
+    keyboard_height: float = 0.0
 ) -> JsxElement {
-    has draft: str = "";
+    has draft: str = "",
+        scroll_ref: Ref[any] = Ref();
+
+    def scroll_to_latest {
+        _ = setTimeout(
+            lambda {
+                scroller: any = scroll_ref.current;
+                if scroller { scroller.scrollToEnd({"animated": True}); }
+            },
+            60
+        );
+    }
 
     def start_edit(index: int, text: str) {
         if sending { return; }
         draft = text;
         if on_edit { on_edit(index); }
+        scroll_to_latest();
     }
 
     def submit {
@@ -42,16 +55,27 @@ def:pub ChatScreen(
         return [by_id[i] for i in ids if i in by_id];
     }
 
-    # The app shell shrinks above the keyboard, so a plain full-height View is enough here.
+    # Expo Go on iOS can ignore KeyboardAvoidingView when the screen is nested
+    # inside our custom tab shell. Reserve the measured keyboard space directly
+    # so the composer always sits immediately above the keyboard.
+    keyboard_inset = keyboard_height if Platform.OS == "ios" else 0.0;
+
     return <View style={ui.screen}>
-        <ScrollView style={ui.flex1} contentContainerStyle={ui.page} keyboardShouldPersistTaps="handled">
+        <ScrollView
+            ref={scroll_ref}
+            style={ui.flex1}
+            contentContainerStyle={ui.page}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+            onContentSizeChange={lambda (_width: float, _height: float) { scroll_to_latest(); }}
+        >
             <Text style={ui.title}>Stylist</Text>
             {(
                 <View style={{"gap": 8}}>
                     <Text style={ui.muted}>Ask what to wear, how to style an item, or what fits your plans. I know your closet, the weather and your calendar.</Text>
                     <View style={ui.wrap}>
                         {[
-                            <View key={s} style={ui.chip}>
+                            <View key={s} style={[ui.chip, {"backgroundColor": "#E2D1C2", "borderWidth": 1, "borderColor": "#D2BBA8"}]}>
                                 <Text style={ui.chipText} onPress={lambda { draft = ""; on_send(s); }}>{s}</Text>
                             </View>
                             for s in SUGGESTIONS
@@ -110,12 +134,13 @@ def:pub ChatScreen(
                 </View>
             ) if sending else None}
         </ScrollView>
-        <View style={[ui.row, {"padding": 12}]}>
+        <View style={[ui.row, {"padding": 12, "marginBottom": keyboard_inset, "backgroundColor": C.bg, "borderTopWidth": 1, "borderColor": C.line}]}>
             <TextInput
                 style={ui.input}
                 value={draft}
                 placeholder="What should I wear today?"
                 onChangeText={lambda (t: str) { draft = t; }}
+                onFocus={lambda { scroll_to_latest(); }}
                 onSubmitEditing={lambda { submit(); }}
                 returnKeyType="send"
                 editable={not sending}
