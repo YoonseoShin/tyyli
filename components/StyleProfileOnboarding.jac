@@ -137,6 +137,7 @@ def:pub StyleProfileOnboarding(
 ) -> JsxElement {
     # Every answer lives in component state, so Back / Continue never lose a selection.
     has step: int = FIRST if initial else SPLASH,
+        user_name: str = initial.name if initial else "",
         selected_styles: list[str] = initial.preferred_styles if initial else [],
         selected_colors: list[str] = initial.preferred_colors if initial else [],
         selected_occasions: list[str] = initial.occasions if initial else [],
@@ -193,6 +194,7 @@ def:pub StyleProfileOnboarding(
 
     def build_profile -> StyleProfile {
         return StyleProfile(
+            name=user_name.strip(),
             preferred_styles=selected_styles,
             preferred_colors=selected_colors,
             occasions=selected_occasions,
@@ -380,7 +382,9 @@ def:pub StyleProfileOnboarding(
 
             {step == INTRO and <Reveal key="intro" grow={True}>
                 <View style={styles.hero}>
-                    <Text style={styles.lead}>First of all, we will ask you a couple questions to know your style…</Text>
+                    <Text style={styles.lead}>First of all, what should we call you?</Text>
+                    <TextInput style={[styles.input, {"alignSelf": "stretch", "textAlign": "center"}]} value={user_name} placeholder="Your name" placeholderTextColor={C["copySoft"]} autoCapitalize="words" autoCorrect={False} onChangeText={lambda (t: str) { user_name = t; }}/>
+                    <Text style={styles.leadSmall}>Then a couple of questions to get to know your style…</Text>
                 </View>
                 <View style={styles.footer}>
                     <PillButton label="Okay!" on_press={lambda { step = FIRST; }}/>

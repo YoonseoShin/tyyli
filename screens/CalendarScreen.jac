@@ -1,16 +1,17 @@
 """This week's plans and how formal each one is."""
 import from "@jac/mobui" { Pressable, ScrollView, Text, View }
+import from ..components.AppIcon { AppIcon }
 import from ..components.EventRow { EventRow }
 import from ..models { CalendarEvent }
 import from ..services.calendar_service { events_on }
 import from ..services.dates { date_key, day_label }
-import from ..ui.kit { ui }
+import from ..ui.kit { C, ui }
 
 
 def:pub CalendarScreen(events: list[CalendarEvent], on_back: Callable[[], None]) -> JsxElement {
     return <ScrollView style={ui.screen} contentContainerStyle={ui.page}>
         <Pressable onPress={lambda { on_back(); }}>
-            <Text style={ui.link}>← Back</Text>
+            <AppIcon name="chevron-left" size={22} color={C.ink}/>
         </Pressable>
         <Text style={ui.title}>Calendar</Text>
 

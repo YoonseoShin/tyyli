@@ -10,7 +10,8 @@ import from .storage_backend {
 
 
 obj:pub StyleProfile {
-    has preferred_styles: list[str] = [],
+    has name: str = "",
+        preferred_styles: list[str] = [],
         preferred_colors: list[str] = [],
         occasions: list[str] = [],
         inspiration: str = "",
@@ -49,7 +50,6 @@ obj:pub ClothingItem {
         style_tags: list[str] = [],
         occasions: list[str] = [],
         warmth: int = 0,
-        waterproof: bool = False,
         description: str = "",
         image_path: str = "",
         source_image_url: str = "",
@@ -95,14 +95,9 @@ def _int_value(payload: dict[str, any], key: str, fallback: int = 0) -> int {
 }
 
 
-def _bool_value(payload: dict[str, any], key: str) -> bool {
-    value = payload.get(key, False);
-    return bool(value) if isinstance(value, (bool, int)) else False;
-}
-
-
 def _profile_from_payload(payload: dict[str, any]) -> StyleProfile {
     return StyleProfile(
+        name=_string_value(payload, "name"),
         preferred_styles=_string_list(payload, "preferred_styles"),
         preferred_colors=_string_list(payload, "preferred_colors"),
         occasions=_string_list(payload, "occasions"),
@@ -142,7 +137,6 @@ def _clothing_from_payload(payload: dict[str, any]) -> ClothingItem {
         style_tags=_string_list(payload, "style_tags"),
         occasions=_string_list(payload, "occasions"),
         warmth=_int_value(payload, "warmth"),
-        waterproof=_bool_value(payload, "waterproof"),
         description=_string_value(payload, "description"),
         image_path=_string_value(payload, "image_path"),
         source_image_url=_string_value(payload, "source_image_url"),
@@ -201,6 +195,7 @@ async def:pub load_local_data -> LocalUserData {
 
 async def:pub save_profile(profile: StyleProfile) -> LocalUserData {
     await save_profile_payload({
+        "name": profile.name,
         "preferred_styles": profile.preferred_styles,
         "preferred_colors": profile.preferred_colors,
         "occasions": profile.occasions,
@@ -241,7 +236,6 @@ async def:pub save_clothing_item(item: ClothingItem) -> LocalUserData {
         "style_tags": item.style_tags,
         "occasions": item.occasions,
         "warmth": item.warmth,
-        "waterproof": item.waterproof,
         "description": item.description,
         "image_path": item.image_path,
         "source_image_url": item.source_image_url,

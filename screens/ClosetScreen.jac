@@ -5,6 +5,7 @@ Finding pictures online: "Find online" reverse-image-searches the whole photo,
 name" / the closet's web search look products up by text.
 """
 import from "@jac/mobui" { Image, Pressable, ScrollView, Text, TextInput, View }
+import from ..components.AppIcon { AppIcon }
 import from ..components.Button { Busy, Button }
 import from ..photo_storage { get_clothing_image_size, resolve_clothing_image_uri }
 import from ..product_lookup { ProductCandidate }
@@ -12,12 +13,10 @@ import from ..services.wardrobe_actions {
     add_from_camera,
     add_from_candidate,
     add_from_gallery,
-    add_from_url,
     analyze_item,
     find_online,
     find_online_cropped,
     is_analyzed,
-    listing_name,
     remove_item,
     search_online,
     use_candidate,
@@ -28,11 +27,56 @@ import from ..ui.kit { C, ui }
 
 
 glob MIN_CROP_PX: int = 24,
-     MAX_CROP_HEIGHT: int = 440;
+     MAX_CROP_HEIGHT: int = 440,
+     # [chip label, categories it shows]
+     CATEGORY_CHIPS: list[list[any]] = [
+        ["All", []],
+        ["Tops", ["Top"]],
+        ["Bottoms", ["Bottom"]],
+        ["Dresses", ["Dress"]],
+        ["Outerwear", ["Outerwear"]],
+        ["Shoes", ["Shoes"]],
+        ["Bags", ["Bag"]],
+        ["Accessories", ["Accessory"]],
+        ["New", ["Uncategorized"]]
+     ];
 
 
-def or_dash(values: list[str]) -> str {
-    return ", ".join(values) if values else "-";
+def first_color(item: ClothingItem) -> str {
+    return (item.colors[0][:1].upper() + item.colors[0][1:]) if item.colors else "";
+}
+
+
+def matches_filter(item: ClothingItem, text: str, chip: str) -> bool {
+    categories: list[str] = [c[1] for c in CATEGORY_CHIPS if c[0] == chip][0] if chip != "All" else [];
+    if categories and item.category not in categories { return False; }
+    query = text.strip().lower();
+    if not query { return True; }
+    haystack = " ".join([item.name, item.category, item.brand] + item.colors + item.style_tags).lower();
+    return query in haystack;
+}
+
+
+def category_count(clothes: list[ClothingItem], chip: list[any]) -> int {
+    if chip[0] == "All" { return len(clothes); }
+    categories: list[str] = chip[1];
+    return len([item for item in clothes if item.category in categories]);
+}
+
+
+def MetadataPills(label: str, values: list[str]) -> JsxElement {
+    display_values = values if values else ["Not detected"];
+    return <View style={{"gap": 8}}>
+        <Text style={ui.label}>{label}</Text>
+        <View style={ui.wrap}>
+            {[
+                <View key={label + "-" + value} style={[ui.chipOutline, {"paddingVertical": 7, "paddingHorizontal": 11, "flexDirection": "row", "alignItems": "center", "gap": 6}]}>
+                    <Text style={{"fontSize": 12, "fontWeight": "bold", "color": C.ink}}>{value}</Text>
+                </View>
+                for value in display_values
+            ]}
+        </View>
+    </View>;
 }
 
 
@@ -45,7 +89,6 @@ def lookup_heading(status: str) -> str {
 
 def:pub ClosetScreen(clothes: list[ClothingItem], on_changed: Callable[[], None]) -> JsxElement {
     has status: str = "",
-        image_url: str = "",
         analyzing_ids: list[str] = [],
         looking_up_ids: list[str] = [],
         alt_item_id: str = "",
@@ -66,7 +109,10 @@ def:pub ClosetScreen(clothes: list[ClothingItem], on_changed: Callable[[], None]
         crop_y1: float = 0.0,
         last_crop_item: str = "",
         last_crop_box: list[float] = [],
-        selected_id: str = "";
+        selected_id: str = "",
+        filter_text: str = "",
+        category_filter: str = "All",
+        show_add: bool = False;
 
     async def analyze(item: ClothingItem) {
         analyzing_ids = analyzing_ids + [item.clothing_item_id];
@@ -80,7 +126,7 @@ def:pub ClosetScreen(clothes: list[ClothingItem], on_changed: Callable[[], None]
         );
         try {
             await analyze_item(item);
-            status = "Analyzed " + item.name + ".";
+            status = "";
         } except Exception as e {
             status = "AI analysis failed: " + str(e);
         } finally {
@@ -113,9 +159,9 @@ def:pub ClosetScreen(clothes: list[ClothingItem], on_changed: Callable[[], None]
             alt_heading = "Not the right picture? Tap a closer one:";
             alt_candidates = result.candidates[1:] if result.matched else result.candidates;
             if result.match_type == "exact" {
-                status = "Found it on " + result.source + ".";
+                status = "";
             } elif result.match_type == "similar" {
-                status = "Found the closest-looking picture on " + result.source + ".";
+                status = "";
             } else {
                 status = "No close picture found. " + result.note;
             }
@@ -141,7 +187,7 @@ def:pub ClosetScreen(clothes: list[ClothingItem], on_changed: Callable[[], None]
             alt_item_id = item.clothing_item_id;
             alt_heading = "Tap the picture to use for this item:";
             alt_candidates = results;
-            status = (str(len(results)) + " pictures found.") if results else "Nothing found for '" + query + "'.";
+            status = "" if results else "Nothing found for '" + query + "'.";
         } except Exception as e {
             status = "Search failed: " + str(e);
         } finally {
@@ -155,7 +201,7 @@ def:pub ClosetScreen(clothes: list[ClothingItem], on_changed: Callable[[], None]
         try {
             await use_candidate(item, cand);
             alt_candidates = [c for c in alt_candidates if c.image != cand.image];
-            status = "Using the picture from " + cand.source + (" and renamed the item to \"" + listing_name(cand.title, cand.source) + "\"." if cand.title else ".");
+            status = "";
         } except Exception as e {
             status = "Could not use that picture: " + str(e);
         } finally {
@@ -167,7 +213,7 @@ def:pub ClosetScreen(clothes: list[ClothingItem], on_changed: Callable[[], None]
     async def revert_photo(item: ClothingItem) {
         try {
             await use_original_photo(item);
-            status = "Showing your own photo again.";
+            status = "";
         } except Exception as e {
             status = "Could not restore the photo: " + str(e);
         }
@@ -237,14 +283,6 @@ def:pub ClosetScreen(clothes: list[ClothingItem], on_changed: Callable[[], None]
                 await handle_new(await add_from_camera());
             } elif source == "gallery" {
                 await handle_new(await add_from_gallery());
-            } else {
-                if not image_url.strip() {
-                    status = "Paste an image URL first.";
-                    return;
-                }
-                new_items = await add_from_url(image_url);
-                image_url = "";
-                await handle_new(new_items);
             }
         } except Exception as e {
             status = "Could not add: " + str(e);
@@ -288,7 +326,7 @@ def:pub ClosetScreen(clothes: list[ClothingItem], on_changed: Callable[[], None]
         try {
             await remove_item(item);
             selected_id = "";
-            status = "Deleted " + item.name + ".";
+            status = "";
             on_changed();
         } except Exception as e {
             status = "Could not delete: " + str(e);
@@ -370,23 +408,51 @@ def:pub ClosetScreen(clothes: list[ClothingItem], on_changed: Callable[[], None]
             keyboardShouldPersistTaps="handled"
             automaticallyAdjustKeyboardInsets={True}
         >
-            <Pressable onPress={lambda { selected_id = ""; }}>
-                <Text style={ui.link}>← Closet</Text>
-            </Pressable>
-            <Image source={{"uri": resolve_clothing_image_uri(item.image_path)}} style={ui.thumbLarge} resizeMode="contain"/>
+            <View style={[ui.row, {"gap": 12}]}>
+                <Pressable style={ui.iconButton} onPress={lambda { selected_id = ""; }}>
+                    <AppIcon name="chevron-left" size={22} color={C.ink}/>
+                </Pressable>
+                <Text style={ui.label}>MY CLOSET</Text>
+            </View>
+            <Image source={{"uri": resolve_clothing_image_uri(item.image_path)}} style={[ui.thumbLarge, {"height": 230}]} resizeMode="contain"/>
             <Text style={ui.title}>{item.name}</Text>
             {(<Busy label={status or "Working..."}/>) if busy or item.clothing_item_id in analyzing_ids else None}
             {(<Text style={ui.muted}>Analyzing with AI...</Text>) if item.clothing_item_id in analyzing_ids else (
-                <View style={ui.card}>
-                    <Text style={ui.body}>{"Type: " + item.category}</Text>
-                    <Text style={ui.body}>{"Colors: " + or_dash(item.colors)}</Text>
-                    <Text style={ui.body}>{"Mood: " + or_dash(item.style_tags)}</Text>
-                    <Text style={ui.body}>{"Best for: " + or_dash(item.occasions)}</Text>
-                    <Text style={ui.body}>{"Seasons: " + or_dash(item.seasons)}</Text>
-                    {(<Text style={ui.body}>{"Warmth: " + str(item.warmth) + "/5" + (" · Waterproof" if item.waterproof else "")}</Text>) if item.warmth > 0 else (
-                        (<Text style={ui.body}>Waterproof</Text>) if item.waterproof else None
-                    )}
-                    {(<Text style={ui.muted}>{item.description}</Text>) if item.description else None}
+                <View style={[ui.card, {"gap": 16}]}>
+                    <View style={ui.rowBetween}>
+                        <Text style={ui.label}>AI ITEM PROFILE</Text>
+                        <View style={[ui.chipSage, {"paddingVertical": 4, "paddingHorizontal": 9}]}>
+                            <Text style={{"fontSize": 10, "fontWeight": "bold", "color": C.sage_ink}}>ANALYZED</Text>
+                        </View>
+                    </View>
+                    <MetadataPills label="TYPE" values={[item.category]}/>
+                    <View style={ui.divider}/>
+                    <MetadataPills label="COLORS" values={item.colors}/>
+                    <View style={ui.divider}/>
+                    <MetadataPills label="MOOD" values={item.style_tags}/>
+                    <View style={ui.divider}/>
+                    <MetadataPills label="BEST FOR" values={item.occasions}/>
+                    <View style={ui.divider}/>
+                    <MetadataPills label="SEASONS" values={item.seasons}/>
+                    {(
+                        <View style={{"gap": 8}}>
+                            <Text style={ui.label}>WARMTH</Text>
+                            <View style={{"gap": 6}}>
+                                {(
+                                    <View style={[ui.row, {"gap": 5}]}>
+                                        {[<View key={str(n)} style={{"width": 10, "height": 10, "borderRadius": 999, "backgroundColor": C.accent if n < item.warmth else C.line}}/> for n in range(5)]}
+                                        <Text style={ui.small}>{"Warmth " + str(item.warmth) + "/5"}</Text>
+                                    </View>
+                                ) if item.warmth > 0 else <Text style={ui.small}>No warmth rating</Text>}
+                            </View>
+                        </View>
+                    ) if item.warmth > 0 else None}
+                    {(
+                        <View style={{"padding": 12, "borderRadius": 14, "backgroundColor": C.soft, "gap": 5}}>
+                            <Text style={ui.label}>ABOUT THIS ITEM</Text>
+                            <Text style={ui.body}>{item.description}</Text>
+                        </View>
+                    ) if item.description else None}
                 </View>
             ) if is_analyzed(item) else (<Text style={ui.muted}>Not analyzed yet.</Text>)}
             {(
@@ -466,77 +532,111 @@ def:pub ClosetScreen(clothes: list[ClothingItem], on_changed: Callable[[], None]
     }
 
     # Grid
+    shown = [c for c in clothes if matches_filter(c, filter_text, category_filter)];
     return <ScrollView
         style={ui.screen}
-        contentContainerStyle={ui.page}
+        contentContainerStyle={[ui.page, {"gap": 14}]}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets={True}
     >
-        <Text style={ui.title}>My closet</Text>
-        <Text style={ui.muted}>{str(len(clothes)) + " item(s)"}</Text>
-
-        <View style={ui.card}>
-            <View style={ui.row}>
-                <Button label="Take photo" on_press={lambda { add("camera"); }}/>
-                <Button label="From gallery" on_press={lambda { add("gallery"); }}/>
-            </View>
-            <View style={ui.row}>
-                <TextInput
-                    style={ui.input}
-                    value={web_query}
-                    onChangeText={lambda (t: str) { web_query = t; }}
-                    placeholder="Search the web, e.g. levi's trucker jacket"
-                    autoCapitalize="none"
-                    autoCorrect={False}
-                    returnKeyType="search"
-                    onSubmitEditing={lambda { search_web(); }}
-                />
-                <Button label="Search" grow={False} disabled={web_searching} busy={web_searching} on_press={lambda { search_web(); }}/>
-            </View>
-            <View style={ui.row}>
-                <TextInput
-                    style={ui.input}
-                    value={image_url}
-                    onChangeText={lambda (t: str) { image_url = t; }}
-                    placeholder="Image URL (for testing)"
-                    autoCapitalize="none"
-                    autoCorrect={False}
-                />
-                <Button label="Save" grow={False} on_press={lambda { add("url"); }}/>
-            </View>
-            {(<Busy label={status}/>) if web_searching else ((<Text style={ui.muted}>{status}</Text>) if status else None)}
+        <View style={ui.rowBetween}>
+            <Text style={{"fontSize": 22, "fontWeight": "bold", "color": C.ink}}>My Closet</Text>
+            <Pressable
+                accessibilityLabel={"Close add item panel" if show_add else "Add new item"}
+                style={[ui.iconButton, {"backgroundColor": C.dark}]}
+                onPress={lambda { show_add = not show_add; }}
+            >
+                <AppIcon name={"close" if show_add else "plus"} size={22} color={C.accent_text}/>
+            </Pressable>
         </View>
 
         {(
-            <View style={ui.card}>
-                <View style={ui.rowBetween}>
-                    <Text style={ui.body}>Tap a picture to add it to your closet</Text>
-                    <Pressable onPress={lambda { web_results = []; }}>
-                        <Text style={ui.link}>Clear</Text>
-                    </Pressable>
+            <View style={[ui.card, {"gap": 12}]}>
+                <Text style={ui.label}>ADD NEW ITEM</Text>
+                <View style={ui.row}>
+                    <Button label="Take photo" on_press={lambda { add("camera"); }}/>
+                    <Button label="From gallery" on_press={lambda { add("gallery"); }}/>
                 </View>
-                <View style={[ui.wrap, {"justifyContent": "space-between"}]}>
-                    {[
-                        <Pressable key={cand.image} style={ui.gridItem} onPress={lambda { add_result(cand); }}>
-                            <Image source={{"uri": cand.thumbnail}} style={ui.gridImage} resizeMode="cover"/>
-                            <Text style={ui.muted} numberOfLines={2}>{cand.title or cand.source}</Text>
-                        </Pressable>
-                        for cand in web_results
-                    ]}
+                <View style={ui.row}>
+                    <TextInput
+                        style={ui.input}
+                        value={web_query}
+                        onChangeText={lambda (t: str) { web_query = t; }}
+                        placeholder="Search the web, e.g. levi's trucker jacket"
+                        placeholderTextColor={C.muted}
+                        autoCapitalize="none"
+                        autoCorrect={False}
+                        returnKeyType="search"
+                        onSubmitEditing={lambda { search_web(); }}
+                    />
+                    <Button label="Search" grow={False} disabled={web_searching} busy={web_searching} on_press={lambda { search_web(); }}/>
                 </View>
+                {(
+                    <View style={{"gap": 8}}>
+                        <View style={ui.rowBetween}>
+                            <Text style={ui.body}>Tap a picture to add it</Text>
+                            <Pressable onPress={lambda { web_results = []; }}>
+                                <Text style={ui.link}>Clear</Text>
+                            </Pressable>
+                        </View>
+                        <View style={[ui.wrap, {"justifyContent": "space-between"}]}>
+                            {[
+                                <Pressable key={cand.image} style={ui.gridItem} onPress={lambda { add_result(cand); }}>
+                                    <Image source={{"uri": cand.thumbnail}} style={ui.gridImage} resizeMode="cover"/>
+                                    <Text style={ui.muted} numberOfLines={2}>{cand.title or cand.source}</Text>
+                                </Pressable>
+                                for cand in web_results
+                            ]}
+                        </View>
+                    </View>
+                ) if web_results else None}
             </View>
-        ) if web_results else None}
+        ) if show_add else None}
 
-        {(<Text style={ui.muted}>Your closet is empty. Add your first item above.</Text>) if not clothes else None}
-        <View style={[ui.wrap, {"justifyContent": "space-between"}]}>
+        <View style={[ui.row, {"backgroundColor": C.surface, "borderRadius": 999, "paddingHorizontal": 16}]}>
+            <AppIcon name="magnify" size={19} color={C.muted}/>
+            <TextInput
+                style={[ui.input, {"borderWidth": 0, "paddingHorizontal": 4, "backgroundColor": "transparent"}]}
+                value={filter_text}
+                onChangeText={lambda (t: str) { filter_text = t; }}
+                placeholder="Search items..."
+                placeholderTextColor={C.muted}
+                autoCapitalize="none"
+                autoCorrect={False}
+            />
+        </View>
+
+        <ScrollView horizontal={True} showsHorizontalScrollIndicator={False}>
+            <View style={ui.row}>
+                {[
+                    <Pressable key={chip[0]} style={[ui.chipOutline, {"backgroundColor": C.dark, "borderColor": C.dark} if chip[0] == category_filter else {}]} onPress={lambda { category_filter = chip[0]; }}>
+                        <View style={[ui.row, {"gap": 6}]}>
+                            <Text style={[ui.chipText, ui.chipTextOn] if chip[0] == category_filter else ui.chipText}>{chip[0]}</Text>
+                            <View style={{"minWidth": 20, "height": 20, "paddingHorizontal": 5, "borderRadius": 999, "alignItems": "center", "justifyContent": "center", "backgroundColor": C.accent if chip[0] == category_filter else C.soft}}>
+                                <Text style={{"fontSize": 10, "fontWeight": "bold", "color": C.accent_text if chip[0] == category_filter else C.muted}}>{str(category_count(clothes, chip))}</Text>
+                            </View>
+                        </View>
+                    </Pressable>
+                    for chip in CATEGORY_CHIPS
+                ]}
+            </View>
+        </ScrollView>
+
+        {(<Busy label={status or "Working..."}/>) if web_searching or len(analyzing_ids) > 0 else ((<Text style={ui.muted}>{status}</Text>) if status else None)}
+
+        {(<Text style={ui.muted}>{"Your closet is empty. Tap + to add your first item." if not clothes else "No items match."}</Text>) if not shown else None}
+        <View style={[ui.wrap, {"gap": 10}]}>
             {[
-                <Pressable key={item.clothing_item_id} style={ui.gridItem} onPress={lambda { selected_id = item.clothing_item_id; }}>
-                    <Image source={{"uri": resolve_clothing_image_uri(item.image_path)}} style={ui.gridImage} resizeMode="cover"/>
-                    <Text style={ui.body} numberOfLines={1}>{item.name}</Text>
-                    <Text style={ui.muted}>{"Analyzing..." if item.clothing_item_id in analyzing_ids else item.category}</Text>
+                <Pressable key={item.clothing_item_id} style={{"width": "31%", "borderRadius": 16, "backgroundColor": C.surface, "overflow": "hidden"}} onPress={lambda { selected_id = item.clothing_item_id; }}>
+                    <Image source={{"uri": resolve_clothing_image_uri(item.image_path)}} style={{"width": "100%", "aspectRatio": 1, "backgroundColor": C.soft}} resizeMode="cover"/>
+                    <View style={{"padding": 8, "gap": 1}}>
+                        <Text style={{"fontSize": 12, "fontWeight": "bold", "color": C.ink}} numberOfLines={1}>{item.name}</Text>
+                        <Text style={{"fontSize": 10, "color": C.muted}} numberOfLines={1}>{"Analyzing..." if item.clothing_item_id in analyzing_ids else (" · ".join([v for v in [first_color(item), item.category] if v and v != "Uncategorized"]) or "Not analyzed")}</Text>
+                    </View>
                 </Pressable>
-                for item in clothes
+                for item in shown
             ]}
         </View>
+
     </ScrollView>;
 }
