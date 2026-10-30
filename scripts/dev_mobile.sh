@@ -1,22 +1,59 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 
 set -euo pipefail
 
-SCRIPT_DIR="${0:A:h}"
-PROJECT_DIR="${SCRIPT_DIR:h}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "${SCRIPT_DIR}")"
 RN_DIR="${PROJECT_DIR}/.jac/mobile-rn"
 API_PORT="${JAC_API_PORT:-8000}"
 METRO_PORT="${JAC_RN_METRO_PORT:-8081}"
-LAN_HOST="${JAC_RN_DEV_HOST:-$(ipconfig getifaddr en0 2>/dev/null || true)}"
+OS_NAME="$(uname -s)"
+IS_WSL=false
 
-if [[ -z "${LAN_HOST}" ]]; then
-  LAN_HOST="$(ipconfig getifaddr en1 2>/dev/null || true)"
+if [[ "${OS_NAME}" == "Linux" ]] && grep -qiE 'microsoft|wsl' /proc/version 2>/dev/null; then
+  IS_WSL=true
+fi
+
+detect_lan_host() {
+  case "${OS_NAME}" in
+    Darwin)
+      ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true
+      ;;
+    Linux)
+      if [[ "${IS_WSL}" == true ]] && command -v powershell.exe >/dev/null 2>&1; then
+        powershell.exe -NoProfile -NonInteractive -Command \
+          '$route = Get-NetRoute -DestinationPrefix "0.0.0.0/0" | Sort-Object RouteMetric | Select-Object -First 1; (Get-NetIPAddress -AddressFamily IPv4 -InterfaceIndex $route.InterfaceIndex | Where-Object { $_.IPAddress -notlike "169.254.*" } | Select-Object -First 1 -ExpandProperty IPAddress)' \
+          2>/dev/null | tr -d '\r' | head -n 1
+      else
+        ip -4 route get 1.1.1.1 2>/dev/null | awk '
+          { for (i = 1; i <= NF; i++) if ($i == "src") { print $(i + 1); exit } }
+        '
+      fi
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+}
+
+if [[ -n "${JAC_RN_DEV_HOST:-}" ]]; then
+  LAN_HOST="${JAC_RN_DEV_HOST}"
+else
+  LAN_HOST="$(detect_lan_host)"
 fi
 
 if [[ -z "${LAN_HOST}" ]]; then
-  echo "Could not find the Mac's LAN IP address."
-  echo "Run again with: JAC_RN_DEV_HOST=192.168.x.x ./scripts/dev_mobile.sh"
+  echo "Could not determine the LAN address Expo Go should use."
+  echo "Set it explicitly and retry: JAC_RN_DEV_HOST=your-computer-lan-ip ./scripts/dev_mobile.sh"
   exit 1
+fi
+
+if [[ "${IS_WSL}" == true ]]; then
+  echo "WSL detected. The Expo Go address below must be reachable from your phone."
+  echo "For WSL2, enable mirrored networking in %UserProfile%\\.wslconfig and allow"
+  printf 'inbound TCP ports %s and %s through the Hyper-V firewall, or configure Windows port forwarding.\n' \
+    "${API_PORT}" "${METRO_PORT}"
+  echo "Restart WSL after changing its networking mode."
 fi
 
 if [[ ! -d "${RN_DIR}" ]]; then
@@ -65,7 +102,7 @@ trap cleanup EXIT INT TERM
 # Intel Mac, so allow up to 3 minutes before giving up.
 SERVER_READY=false
 echo "Waiting for the Jac API server on port ${API_PORT}..."
-for i in {1..360}; do
+for ((i = 1; i <= 360; i++)); do
   if curl -fsS "http://127.0.0.1:${API_PORT}/openapi.json" >/dev/null 2>&1; then
     SERVER_READY=true
     break
@@ -92,4 +129,6 @@ echo "  API:     ${API_URL}"
 echo ""
 
 cd "${PROJECT_DIR}"
-JAC_RN_METRO_PORT="${METRO_PORT}" jac run --no-takeover scripts/start_metro.jac
+JAC_RN_METRO_PORT="${METRO_PORT}" \
+  REACT_NATIVE_PACKAGER_HOSTNAME="${LAN_HOST}" \
+  jac run --no-takeover scripts/start_metro.jac
