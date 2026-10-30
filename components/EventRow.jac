@@ -9,7 +9,7 @@ def:pub EventRow(event: CalendarEvent) -> JsxElement {
     return <View style={ui.rowBetween}>
         <View style={ui.flex1}>
             <Text style={ui.body}>{event.title}</Text>
-            <Text style={ui.muted}>{(event.start_time + " · " if event.start_time else "") + event.kind}</Text>
+            <Text style={ui.muted}>{event.start_time if event.start_time else "Any time"}</Text>
         </View>
         <View style={ui.chip}>
             <Text style={ui.chipText}>{formality_label(event.formality)}</Text>

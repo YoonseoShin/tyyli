@@ -1,14 +1,14 @@
 """App shell: loads data, gates on onboarding, and switches between screens.
 
 Navigation is plain state: `tab` is the bottom-tab screen and `route` is a
-full-screen page opened on top for onboarding.
+full-screen page opened on top.
 """
-import from "@jac/mobui" { Keyboard, Platform, Pressable, Text, View }
+import from "@jac/mobui" { Keyboard, Platform, Text, View }
 import from ..components.StyleProfileOnboarding { StyleProfileOnboarding }
 import from ..components.TabBar { TabBar }
 import from ..models { CalendarEvent, ChatMessage, HistoryEntry, Outfit, WeatherInfo }
 import from ..services.ai_outfit_service { request_ai_outfit_recommendations }
-import from ..services.calendar_service { events_on, get_week_events, save_week_events }
+import from ..services.calendar_service { add_manual_events, events_on, get_week_events, save_week_events }
 import from ..services.chat_service { send_chat_message }
 import from ..services.dates { date_key }
 import from ..services.history_store { delete_history_entry, load_history, save_history_entry }
@@ -17,6 +17,7 @@ import from ..services.outfit_service { build_picks }
 import from ..services.weather_service { get_today_weather }
 import from ..storage { LocalUserData, StyleProfile, clear_local_data, load_local_data, save_profile }
 import from ..ui.kit { ui }
+import from .CalendarScreen { CalendarScreen }
 import from .ChatScreen { ChatScreen }
 import from .ClosetScreen { ClosetScreen }
 import from .HistoryScreen { HistoryScreen }
@@ -47,6 +48,7 @@ def:pub AppShell -> JsxElement {
         looks: list[HistoryEntry] = [],
         temperature_unit: str = "F",
         keyboard_height: float = 0.0;
+
     async def reload {
         try {
             data = await load_local_data();
@@ -126,6 +128,26 @@ def:pub AppShell -> JsxElement {
     async def update_today_events(updated: list[CalendarEvent]) {
         today = date_key(0);
         events = [event for event in events if event.date != today] + updated;
+        try {
+            await save_week_events(events);
+            load_error = "";
+        } except Exception as e {
+            load_error = "Could not save the test schedule: " + str(e);
+        }
+    }
+
+    async def add_event(title: str, date: str, start_time: str, kind: str, formality: int, recurrence: str, is_major: bool = True) {
+        events = add_manual_events(events, title, date, start_time, kind, formality, recurrence, is_major);
+        try {
+            await save_week_events(events);
+            load_error = "";
+        } except Exception as e {
+            load_error = "Could not save the test schedule: " + str(e);
+        }
+    }
+
+    async def remove_event(event_id: str) {
+        events = [event for event in events if event.event_id != event_id];
         try {
             await save_week_events(events);
             load_error = "";
@@ -241,6 +263,17 @@ def:pub AppShell -> JsxElement {
         return <StyleProfileOnboarding initial={data.profile} on_finish={lambda (p: StyleProfile) { finish_onboarding(p); }} on_cancel={lambda { route = ""; }}/>;
     }
 
+    if route == "calendar" {
+        return <View style={ui.app}>
+            <CalendarScreen
+                events={events}
+                on_add_event={lambda (title: str, date: str, start_time: str, kind: str, formality: int, recurrence: str, is_major: bool) { add_event(title, date, start_time, kind, formality, recurrence, is_major); }}
+                on_remove_event={lambda (event_id: str) { remove_event(event_id); }}
+                on_back={lambda { route = ""; }}
+            />
+        </View>;
+    }
+
     today_events = events_on(events, date_key(0));
     picks = ai_picks;
     can_generate = bool(build_picks(data.clothes, data.profile, weather, events, 0));
@@ -262,6 +295,7 @@ def:pub AppShell -> JsxElement {
                 on_open_pick={lambda (i: int) { open_pick(i); }}
                 on_generate={lambda { generate_first_outfits(); }}
                 on_events_change={lambda (updated: list[CalendarEvent]) { update_today_events(updated); }}
+                on_add_event={lambda (title: str, date: str, start_time: str, kind: str, formality: int, recurrence: str, is_major: bool) { add_event(title, date, start_time, kind, formality, recurrence, is_major); }}
                 temperature_unit={unit}
                 on_toggle_unit={lambda { toggle_temperature_unit(); }}
             />) if tab == "home" else None}
