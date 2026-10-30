@@ -62,20 +62,16 @@ def:pub Backdrop(width: float, height: float, phase: int = 0) -> JsxElement {
 }
 
 
-# Fades and rises its children when mounted; give it a changing `key` to
-# replay the entrance on every new screen.
-def:pub Reveal(children: any = None, delay: int = 0, distance: float = 18.0, grow: bool = False) -> JsxElement {
-    has fade: any = new(AnimatedValue, 0.0),
-        rise: any = new(AnimatedValue, distance);
+# Slides its children in from the right when mounted; give it a changing `key`
+# to replay the entrance on every new screen.
+def:pub Reveal(children: any = None, delay: int = 0, distance: float = 48.0, grow: bool = False) -> JsxElement {
+    has slide: any = new(AnimatedValue, distance);
 
     can with entry {
-        Animated.parallel([
-            Animated.timing(fade, {"toValue": 1.0, "duration": 460, "delay": delay, "easing": EASE_OUT, "useNativeDriver": NATIVE_DRIVER}),
-            Animated.timing(rise, {"toValue": 0.0, "duration": 520, "delay": delay, "easing": EASE_OUT, "useNativeDriver": NATIVE_DRIVER})
-        ]).start();
+        Animated.timing(slide, {"toValue": 0.0, "duration": 680, "delay": delay, "easing": EASE_OUT, "useNativeDriver": NATIVE_DRIVER}).start();
     }
 
-    return <AnimatedView style={[{"opacity": fade, "transform": [{"translateY": rise}]}, {"flex": 1} if grow else {}]}>{children}</AnimatedView>;
+    return <AnimatedView style={[{"transform": [{"translateX": slide}]}, {"flex": 1} if grow else {}]}>{children}</AnimatedView>;
 }
 
 
