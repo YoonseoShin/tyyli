@@ -15,23 +15,39 @@ import from ..ui.kit { C, ui }
 
 glob WEEKDAY_NAMES: list[str] = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"],
     MONTH_NAMES: list[str] = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"],
-    DOT_COLORS: list[str] = ["#22170F", "#8B6B55", "#C9B8A6", "#6F7F62"],
-    PLAN_KINDS: list[str] = ["work", "school", "social", "exercise", "formal", "other"];
+    DOT_COLORS: list[str] = ["#22170F", "#8B6B55", "#C9B8A6", "#6F7F62"];
 
 
 def:pub today_label -> str {
     now = new(Date);
-    return str(WEEKDAY_NAMES[now.getDay()]) + ", " + str(MONTH_NAMES[now.getMonth()]) + " " + str(now.getDate());
+    return str(WEEKDAY_NAMES[int(now.getDay())]) + ", " + str(MONTH_NAMES[int(now.getMonth())]) + " " + str(now.getDate());
 }
 
-# "10:00" -> "10:00 AM", "18:30" -> "6:30 PM".
-def:pub clock_label(time: str) -> str {
+# "10:00" -> "10:00 AM", "18:30" -> "6:30 PM", "09:00 - 10:30" -> "9:00 AM - 10:30 AM".
+def _clock_single(time: str) -> str {
     if not time or ":" not in time { return time; }
     parts = time.split(":");
-    hour = int(parts[0]);
+    if len(parts) != 2 { return time; }
+    try {
+        hour = int(parts[0]);
+    } except Exception {
+        return time;
+    }
     suffix = "PM" if hour >= 12 else "AM";
     shown = hour - 12 if hour > 12 else (12 if hour == 0 else hour);
     return str(shown) + ":" + parts[1] + " " + suffix;
+}
+
+
+def:pub clock_label(time: str) -> str {
+    compact = time.strip();
+    if "-" in compact {
+        parts = [p.strip() for p in compact.split("-") if p.strip()];
+        if len(parts) == 2 {
+            return _clock_single(parts[0]) + " - " + _clock_single(parts[1]);
+        }
+    }
+    return _clock_single(compact);
 }
 
 
@@ -77,25 +93,31 @@ def:pub HomeScreen(
     on_open_pick: Callable[[int], None],
     on_generate: Callable[[], None],
     on_events_change: Callable[[list[CalendarEvent]], None],
+    on_add_event: Callable[[str, str, str, str, int, str, bool], None] | None = None,
     temperature_unit: str = "F",
     on_toggle_unit: Callable[[], None] | None = None
 ) -> JsxElement {
     has editing_schedule: bool = False,
         plan_title: str = "",
         plan_time: str = "",
-        plan_kind: str = "social",
         plan_formality: int = 2,
         plan_major: bool = True;
 
     def add_plan {
         title = plan_title.strip();
         if not title { return; }
+        if on_add_event {
+            on_add_event(title, date_key(0), plan_time.strip(), "other", plan_formality, "one_time", plan_major);
+            plan_title = "";
+            plan_time = "";
+            return;
+        }
         on_events_change(today_events + [CalendarEvent(
             event_id="test-" + str(Date.now()),
             title=title,
             date=date_key(0),
             start_time=plan_time.strip(),
-            kind=plan_kind,
+            kind="other",
             formality=plan_formality,
             is_major=plan_major
         )]);
@@ -150,7 +172,7 @@ def:pub HomeScreen(
                             <View style={{"width": 7, "height": 7, "borderRadius": 999, "backgroundColor": DOT_COLORS[n % len(DOT_COLORS)]}}/>
                             <View style={ui.flex1}>
                                 <Text style={ui.bodyBold} numberOfLines={1}>{e.title}</Text>
-                                <Text style={ui.small}>{capitalize(e.kind) + " · " + formality_label(e.formality).lower() + (" · major" if e.is_major else "")}</Text>
+                                <Text style={ui.small}>{formality_label(e.formality).lower() + (" · major" if e.is_major else "")}</Text>
                             </View>
                         </View>
                         <Text style={ui.small}>{clock_label(e.start_time)}</Text>
@@ -180,17 +202,6 @@ def:pub HomeScreen(
                         onChangeText={lambda (value: str) { plan_time = value; }}
                     />
                     <View style={{"gap": 7}}>
-                        <Text style={ui.label}>TYPE</Text>
-                        <View style={ui.wrap}>
-                            {[
-                                <Pressable key={kind} style={[ui.chip, ui.chipOn if plan_kind == kind else None]} onPress={lambda { plan_kind = kind; }}>
-                                    <Text style={[ui.chipText, ui.chipTextOn if plan_kind == kind else None]}>{capitalize(kind)}</Text>
-                                </Pressable>
-                                for kind in PLAN_KINDS
-                            ]}
-                        </View>
-                    </View>
-                    <View style={{"gap": 7}}>
                         <Text style={ui.label}>FORMALITY</Text>
                         <View style={ui.wrap}>
                             {[
@@ -215,7 +226,7 @@ def:pub HomeScreen(
                         <Text style={ui.small}>Major events receive their own outfit in addition to the all-day look.</Text>
                     </View>
                     <Button label="Add plan" disabled={not plan_title.strip()} on_press={lambda { add_plan(); }}/>
-                    {(<Button label="Clear today's plans" kind="ghost" on_press={lambda { on_events_change([]); }}/>) if today_events else None}
+                    <Button label="Open calendar planner" kind="ghost" on_press={lambda { on_navigate("calendar"); }}/>
                     <Text style={ui.small}>Regenerate Outfit Picks when you want the AI to use your updated schedule.</Text>
                 </View>
             ) if editing_schedule else None}
