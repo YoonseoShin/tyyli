@@ -8,21 +8,22 @@ import from jaclang.client.targets.react_native.common {
 
 
 glob SDK_58_DEPENDENCIES = {
-    "expo": "~58.0.19",
-    "expo-asset": "~58.0.18",
-    "expo-constants": "~58.0.13",
-    "expo-file-system": "~58.0.11",
-    "expo-image-manipulator": "~58.0.15",
+    "expo": "~58.0.22",
+    "expo-asset": "~58.0.19",
+    "expo-constants": "~58.0.14",
+    "expo-file-system": "~58.0.13",
+    "expo-font": "~58.0.11",
+    "expo-image-manipulator": "~58.0.16",
     "expo-image-picker": "~58.0.10",
-    "expo-location": "~58.0.19",
+    "expo-location": "~58.0.20",
     "expo-secure-store": "~58.0.2",
-    "expo-sqlite": "~58.0.14",
+    "expo-sqlite": "~58.0.15",
     "expo-status-bar": "~58.0.4",
     "react": "19.3.0",
-    "react-native": "0.88.0",
+    "react-native": "0.88.1",
     "react-native-gesture-handler": "~3.3.0",
     "react-native-safe-area-context": "~5.10.1",
-    "react-native-screens": "~4.30.0",
+    "react-native-screens": "~4.30.1",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0"
 },
@@ -64,6 +65,10 @@ with entry {
 
     package_data["dependencies"] = dependencies;
     package_data["devDependencies"] = dev_dependencies;
+    if package_data.get("name") != "tyyli" {
+        package_data["name"] = "tyyli";
+        changed = True;
+    }
     if changed {
         package_path.write_text(
             json.dumps(package_data, indent=2) + "\n",

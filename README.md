@@ -196,6 +196,17 @@ device; no Render database is required.
    API description.
 6. Use the resulting HTTPS origin as the release app's `apiBaseUrl`.
 
+The release client is currently configured to use
+`https://tyyli-api.onrender.com`. `scripts/compile_mobile.jac` writes that URL,
+the Tyyli app name, and the iOS bundle identifier
+`com.yoonseoshin.tyyli` into the generated Expo project. Override the bundle
+identifier with `TYYLI_IOS_BUNDLE_ID` if the Apple Developer team has already
+reserved a different identifier.
+
+The generated Expo app is linked to the shared EAS project
+`@tyyli-apps-team/tyyli`. Run production iOS builds from
+`.jac/mobile-rn` after compiling the latest Jac client.
+
 Render sets `PORT` automatically. The container starts the API with
 `jac run --serve --no-client` and exposes `/openapi.json` as its health check.
 Free Render services sleep after an idle period, so the first request after a
