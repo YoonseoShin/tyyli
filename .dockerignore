@@ -1,0 +1,15 @@
+.git
+.github
+.jac
+.env
+.DS_Store
+node_modules
+**/node_modules
+__pycache__
+*.pyc
+*.log
+*.png
+*.jpg
+*.jpeg
+*.mov
+*.mp4

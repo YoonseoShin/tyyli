@@ -179,6 +179,28 @@ jac run --dev --platform web main.jac
 Native file storage and SQLite are used only on iOS and Android. The browser
 adapter uses browser storage and does not prove native persistence.
 
+## Deploy the Jac API on Render
+
+The root `Dockerfile` and `render.yaml` deploy only the stateless Jac API. User
+photos, closet metadata, profile data, and outfit history remain on each
+device; no Render database is required.
+
+1. Push this repository to GitHub.
+2. In Render, create a new **Blueprint** from the repository and select the
+   branch containing `render.yaml`.
+3. Enter `ANTHROPIC_API_KEY` when Render prompts for the secret value. Never
+   commit the real key.
+4. Keep the `tyyli-api` service on the **Free** plan and apply the Blueprint.
+5. After the deploy succeeds, open
+   `https://<service-name>.onrender.com/openapi.json` and confirm it returns the
+   API description.
+6. Use the resulting HTTPS origin as the release app's `apiBaseUrl`.
+
+Render sets `PORT` automatically. The container starts the API with
+`jac run --serve --no-client` and exposes `/openapi.json` as its health check.
+Free Render services sleep after an idle period, so the first request after a
+sleep can be slower than normal.
+
 ## Troubleshooting the API server
 
 Use `./scripts/dev_mobile.sh` for this project. It works around the current Jac

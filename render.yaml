@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: tyyli-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /openapi.json
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: CLAUDE_MODEL
+        value: claude-opus-5-5
+      - key: PYTHONUNBUFFERED
+        value: "1"
