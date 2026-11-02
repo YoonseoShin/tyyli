@@ -117,6 +117,16 @@ with entry {
         production["autoIncrement"] = True;
         builds["production"] = production;
         eas_data["build"] = builds;
+        submissions = eas_data.get("submit", {});
+        submit_production = submissions.get("production", {});
+        submit_ios = submit_production.get("ios", {});
+        submit_ios["ascAppId"] = os.environ.get(
+            "TYYLI_ASC_APP_ID",
+            "6829900708"
+        );
+        submit_production["ios"] = submit_ios;
+        submissions["production"] = submit_production;
+        eas_data["submit"] = submissions;
         eas_path.write_text(
             json.dumps(eas_data, indent=2) + "\n",
             encoding="utf-8"
