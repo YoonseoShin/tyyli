@@ -188,8 +188,8 @@ device; no Render database is required.
 1. Push this repository to GitHub.
 2. In Render, create a new **Blueprint** from the repository and select the
    branch containing `render.yaml`.
-3. Enter `ANTHROPIC_API_KEY` when Render prompts for the secret value. Never
-   commit the real key.
+3. Enter `ANTHROPIC_API_KEY` and `SERPAPI_KEY` when Render prompts for the
+   secret values. Never commit the real keys.
 4. Keep the `tyyli-api` service on the **Free** plan and apply the Blueprint.
 5. After the deploy succeeds, open
    `https://<service-name>.onrender.com/openapi.json` and confirm it returns the
