@@ -213,11 +213,9 @@ the app. Change the corresponding `TYYLI_RATE_LIMIT_*` values in Render when
 needed for Claude-backed features.
 
 App Attest cannot be tested in Expo Go or the iOS simulator. Compile a new EAS
-build and install it through TestFlight on a physical iPhone. Keep
-`TYYLI_REQUIRE_APP_ATTEST=false` during the first staged test so older builds
-still work. After the App Attest-enabled TestFlight build completes a Claude
-request successfully, change it to `true` in Render. At that point scripts,
-Expo Go, simulators, and older builds cannot use the paid AI endpoints.
+build and install it through TestFlight on a physical iPhone. Production uses
+`TYYLI_REQUIRE_APP_ATTEST=true`, so scripts, Expo Go, simulators, and older
+builds cannot use the paid AI endpoints.
 
 The release client is currently configured to use
 `https://tyyli-api.onrender.com`. `scripts/compile_mobile.jac` writes that URL,

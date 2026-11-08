@@ -17,10 +17,10 @@ services:
         generateValue: true
       - key: CLAUDE_MODEL
         value: claude-opus-5-5
-      # Keep false until the first App Attest-enabled TestFlight build has
-      # passed an end-to-end test. Then change this to true in Render.
+      # App Attest was validated end to end with the TestFlight build.
+      # Keep strict enforcement enabled for paid AI features.
       - key: TYYLI_REQUIRE_APP_ATTEST
-        value: "false"
+        value: "true"
       - key: TYYLI_APPLE_TEAM_ID
         value: 48P4DA4TU3
       - key: TYYLI_IOS_BUNDLE_ID
