@@ -35,6 +35,7 @@ import from ..storage {
     save_clothing_item
 }
 import from .device_identity { get_device_id }
+import from .app_integrity { get_feature_authorization }
 
 
 def:pub new_clothing_item_id(source: str) -> str {
@@ -127,8 +128,8 @@ async def:pub add_from_url(image_url: str) -> list[ClothingItem] {
 
 async def:pub analyze_item(item: ClothingItem) {
     image_data = await read_clothing_image_data(item.image_path);
-    device_id = await get_device_id();
-    result: ClothingAnalysis = await analyze_clothing_image(image_data, device_id);
+    authorization = await get_feature_authorization("clothing-analysis");
+    result: ClothingAnalysis = await analyze_clothing_image(image_data, authorization);
     await save_clothing_item(ClothingItem(
         clothing_item_id=item.clothing_item_id,
         name=result.name or item.name,
@@ -229,8 +230,8 @@ async def:pub find_online(item: ClothingItem, image_data: str = "") -> ProductLo
     if not image_data {
         image_data = await read_clothing_image_data_for_search(item.original_image_path or item.image_path);
     }
-    device_id = await get_device_id();
-    result: ProductLookup = await find_product_online(image_data, device_id);
+    authorization = await get_feature_authorization("product-lookup");
+    result: ProductLookup = await find_product_online(image_data, authorization);
 
     identified_name = (result.brand + " " + result.product_name).strip() if result.product_name else "";
     changes: dict[str, any] = {

@@ -5,7 +5,7 @@ import random;
 import time;
 import from urllib.error { HTTPError, URLError }
 import from urllib.request { Request, urlopen }
-import from .rate_limit { enforce_device_rate_limit }
+import from .app_integrity { authorize_paid_feature }
 
 
 obj:pub ClothingAnalysis {
@@ -275,6 +275,6 @@ def _analyze_with_claude(image_data: str) -> ClothingAnalysis {
 
 
 def:pub analyze_clothing_image(image_data: str, device_id: str = "") -> ClothingAnalysis {
-    enforce_device_rate_limit(device_id, "clothing-analysis", "TYYLI_RATE_LIMIT_ANALYZE", 10);
+    authorize_paid_feature(device_id, "clothing-analysis", "TYYLI_RATE_LIMIT_ANALYZE", 10);
     return _analyze_with_claude(image_data);
 }

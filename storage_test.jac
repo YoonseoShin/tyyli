@@ -22,7 +22,7 @@ import from .storage {
     load_local_data,
     save_clothing_item
 }
-import from .services.device_identity { get_device_id }
+import from .services.app_integrity { get_feature_authorization }
 
 
 glob test_styles = StyleSheet.create({
@@ -100,8 +100,8 @@ def:pub StorageTestScreen -> JsxElement {
             status = "Reading photo from app storage...";
             image_data = await read_clothing_image_data(item.image_path);
             status = "Sending photo to AI...";
-            device_id = await get_device_id();
-            result: ClothingAnalysis = await analyze_clothing_image(image_data, device_id);
+            authorization = await get_feature_authorization("clothing-analysis");
+            result: ClothingAnalysis = await analyze_clothing_image(image_data, authorization);
             status = "AI metadata received. Saving...";
             await save_clothing_item(ClothingItem(
                 clothing_item_id=item.clothing_item_id,

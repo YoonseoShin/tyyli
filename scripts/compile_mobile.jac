@@ -75,6 +75,11 @@ with entry {
         ios_config = ios.get("config", {});
         ios_config["usesNonExemptEncryption"] = False;
         ios["config"] = ios_config;
+        ios_entitlements = ios.get("entitlements", {});
+        ios_entitlements[
+            "com.apple.developer.devicecheck.appattest-environment"
+        ] = "production";
+        ios["entitlements"] = ios_entitlements;
         expo["ios"] = ios;
 
         android = expo.get("android", {});

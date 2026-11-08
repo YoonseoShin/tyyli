@@ -9,10 +9,24 @@ services:
         sync: false
       - key: SERPAPI_KEY
         sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
       - key: JAC_SERVE_AUTH_SECRET
         generateValue: true
       - key: CLAUDE_MODEL
         value: claude-opus-5-5
+      # Keep false until the first App Attest-enabled TestFlight build has
+      # passed an end-to-end test. Then change this to true in Render.
+      - key: TYYLI_REQUIRE_APP_ATTEST
+        value: "false"
+      - key: TYYLI_APPLE_TEAM_ID
+        value: 48P4DA4TU3
+      - key: TYYLI_IOS_BUNDLE_ID
+        value: com.yoonseoshin.tyyli
+      - key: TYYLI_CLAUDE_GLOBAL_DAILY_LIMIT
+        value: "200"
       - key: TYYLI_RATE_LIMIT_WINDOW_SECONDS
         value: "3600"
       - key: TYYLI_RATE_LIMIT_ANALYZE

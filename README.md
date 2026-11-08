@@ -181,30 +181,42 @@ adapter uses browser storage and does not prove native persistence.
 
 ## Deploy the Jac API on Render
 
-The root `Dockerfile` and `render.yaml` deploy only the stateless Jac API. User
-photos, closet metadata, profile data, and outfit history remain on each
-device; no Render database is required.
+The root `Dockerfile` and `render.yaml` deploy the Jac API. User photos, closet
+metadata, profile data, and outfit history remain on each device. Upstash is
+used only for App Attest public keys, one-time challenges, and API usage
+counters; it does not contain wardrobe or profile data.
 
 1. Push this repository to GitHub.
 2. In Render, create a new **Blueprint** from the repository and select the
    branch containing `render.yaml`.
-3. Enter `ANTHROPIC_API_KEY` and `SERPAPI_KEY` when Render prompts for the
-   secret values. Never commit the real keys.
+3. Enter `ANTHROPIC_API_KEY`, `SERPAPI_KEY`,
+   `UPSTASH_REDIS_REST_URL`, and `UPSTASH_REDIS_REST_TOKEN` in Render. Never
+   commit their real values.
 4. Keep the `tyyli-api` service on the **Free** plan and apply the Blueprint.
 5. After the deploy succeeds, open
    `https://<service-name>.onrender.com/openapi.json` and confirm it returns the
    API description.
 6. Use the resulting HTTPS origin as the release app's `apiBaseUrl`.
 
-Paid AI and search endpoints are limited per app installation. The app creates
-an anonymous installation id in device storage and the server keeps only its
-hash. Default hourly limits are 10 clothing analyses, 10 recommendation calls,
-10 explanation calls, 10 visual product lookups, 20 text product searches, 60
-product-image downloads, 30 stylist messages, and 10 style-profile analyses.
-Change the `TYYLI_RATE_LIMIT_*` values in Render when different limits are
-needed. These lightweight counters live in server memory and reset when the
-free Render instance restarts; they are cost-control guardrails for the MVP,
-not a replacement for authentication or a durable distributed rate limiter.
+Paid Claude endpoints use Apple App Attest in production. A supported iPhone
+creates a hardware-backed key, the server verifies Apple's attestation, and
+each paid request receives a fresh one-use authorization. The private key
+never leaves the phone. Upstash stores the public key, replay counter,
+five-minute challenges, one-minute authorizations, and rate counters.
+
+Default hourly limits are 10 clothing analyses, 10 recommendation calls, 10
+explanation calls, 10 visual product lookups, 30 stylist messages, and 10
+style-profile analyses per attested installation. A shared limit of 200 Claude
+requests per UTC day is controlled by `TYYLI_CLAUDE_GLOBAL_DAILY_LIMIT`.
+Text product searches and image downloads keep their separate limits. Change
+the corresponding `TYYLI_RATE_LIMIT_*` values in Render when needed.
+
+App Attest cannot be tested in Expo Go or the iOS simulator. Compile a new EAS
+build and install it through TestFlight on a physical iPhone. Keep
+`TYYLI_REQUIRE_APP_ATTEST=false` during the first staged test so older builds
+still work. After the App Attest-enabled TestFlight build completes a Claude
+request successfully, change it to `true` in Render. At that point scripts,
+Expo Go, simulators, and older builds cannot use the paid AI endpoints.
 
 The release client is currently configured to use
 `https://tyyli-api.onrender.com`. `scripts/compile_mobile.jac` writes that URL,

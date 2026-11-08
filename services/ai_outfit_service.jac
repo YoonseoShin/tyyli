@@ -4,7 +4,7 @@ import from ..outfit_ai { recommend_outfits }
 import from ..storage { ClothingItem, StyleProfile }
 import from .calendar_service { events_on, formality_label }
 import from .dates { date_key }
-import from .device_identity { get_device_id }
+import from .app_integrity { get_feature_authorization }
 import from .weather_service { describe_weather }
 
 
@@ -198,7 +198,6 @@ async def:pub request_ai_outfit_recommendations(
     all_day: Outfit | None = None;
     event_results: dict[str, Outfit] = {};
     fallback_events: dict[str, Outfit] = {};
-    device_id = await get_device_id();
     # Correction calls fill omitted or invalid targets and replace only outfits
     # composed of exactly the same clothing items as a retained look.
     for generation_attempt in range(3) {
@@ -220,7 +219,8 @@ async def:pub request_ai_outfit_recommendations(
                 + ("\n".join(retained_lines) if retained_lines else "none")
             );
         }
-        raw = await recommend_outfits(request_context, device_id);
+        authorization = await get_feature_authorization("outfit-recommendation");
+        raw = await recommend_outfits(request_context, authorization);
         for (index, value) in enumerate(raw) {
             ids = _valid_ids(value.get("clothing_item_ids", []) as list[str], by_id);
             if not ids { continue; }

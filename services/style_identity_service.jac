@@ -3,7 +3,7 @@ server, and falls back to a simple local name and palette when the server or
 the API key is missing, so onboarding always ends with a result."""
 import from ..storage { StyleProfile }
 import from ..style_identity { StyleIdentity, discover_style }
-import from .device_identity { get_device_id }
+import from .app_integrity { get_feature_authorization }
 
 
 glob COLOR_HEX: dict[str, str] = {
@@ -57,8 +57,8 @@ def:pub local_identity(profile: StyleProfile) -> StyleIdentity {
 
 async def:pub discover_style_identity(profile: StyleProfile, notes: str = "") -> StyleIdentity {
     try {
-        device_id = await get_device_id();
-        identity: StyleIdentity = await discover_style(profile_summary(profile, notes), device_id);
+        authorization = await get_feature_authorization("style-identity");
+        identity: StyleIdentity = await discover_style(profile_summary(profile, notes), authorization);
         if identity.name and identity.description {
             if len(identity.palette) < 5 {
                 identity.palette = local_identity(profile).palette;

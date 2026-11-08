@@ -1,13 +1,15 @@
-"""Best-effort per-installation limits for paid server features.
+"""Per-installation limits for paid server features.
 
-The mobile app sends a random installation id with each paid RPC. Only a hash
-of that id is kept in memory, and counters expire after the configured window.
-This is intentionally lightweight for the single-instance MVP deployment.
+Production counters live in Upstash so restarts and multiple Render instances
+cannot reset them. Local development keeps the bounded in-memory fallback.
+Only SHA-256 hashes of installation or App Attest key identifiers are stored.
 """
 import hashlib;
+import json;
 import os;
 import time;
 import from threading { Lock }
+import from urllib.request { Request, urlopen }
 
 
 glob _RATE_BUCKETS: dict[str, list[float]] = {},
@@ -32,6 +34,64 @@ def _bucket_key(feature: str, device_id: str) -> str {
 }
 
 
+def upstash_configured -> bool {
+    return bool(
+        os.environ.get("UPSTASH_REDIS_REST_URL", "").strip()
+        and os.environ.get("UPSTASH_REDIS_REST_TOKEN", "").strip()
+    );
+}
+
+
+def upstash_command(command: list[any]) -> any {
+    url = os.environ.get("UPSTASH_REDIS_REST_URL", "").strip().rstrip("/");
+    token = os.environ.get("UPSTASH_REDIS_REST_TOKEN", "").strip();
+    if not url or not token {
+        raise RuntimeError("Persistent rate-limit storage is not configured.");
+    }
+    request = Request(
+        url,
+        data=json.dumps(command).encode("utf-8"),
+        headers={
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+        },
+        method="POST"
+    );
+    with urlopen(request, timeout=10) as response {
+        result = json.loads(response.read().decode("utf-8")) as dict[str, any];
+    }
+    if result.get("error") {
+        raise RuntimeError("Persistent rate-limit storage rejected a command.");
+    }
+    return result.get("result");
+}
+
+
+def _persistent_fixed_window_limit(
+    identity_hash: str,
+    feature: str,
+    limit: int,
+    window_seconds: int
+) {
+    window = int(time.time()) // window_seconds;
+    key = "tyyli:rate:" + feature + ":" + identity_hash + ":" + str(window);
+    script = (
+        "local n=redis.call('INCR',KEYS[1]);"
+        "if n==1 then redis.call('EXPIRE',KEYS[1],ARGV[1]) end;"
+        "return n"
+    );
+    count = int(upstash_command([
+        "EVAL", script, "1", key, str(window_seconds + 60)
+    ]));
+    if count > limit {
+        raise RuntimeError(
+            "This device has reached the usage limit for this feature. "
+            "Please try again after the current usage window resets."
+        );
+    }
+}
+
+
 def enforce_device_rate_limit(
     device_id: str,
     feature: str,
@@ -40,6 +100,12 @@ def enforce_device_rate_limit(
 ) {
     limit = _positive_env_int(limit_env, default_limit);
     window_seconds = _positive_env_int("TYYLI_RATE_LIMIT_WINDOW_SECONDS", 3600);
+    identity = device_id.strip() or "legacy-client";
+    digest = hashlib.sha256(identity.encode("utf-8")).hexdigest();
+    if upstash_configured() {
+        _persistent_fixed_window_limit(digest, feature, limit, window_seconds);
+        return;
+    }
     now = time.time();
     cutoff = now - float(window_seconds);
     key = _bucket_key(feature, device_id);
@@ -61,6 +127,29 @@ def enforce_device_rate_limit(
         }
         recent.append(now);
         _RATE_BUCKETS[key] = recent;
+    }
+}
+
+
+def enforce_global_daily_limit(feature: str, limit_env: str, default_limit: int) {
+    limit = _positive_env_int(limit_env, default_limit);
+    if not upstash_configured() {
+        # Local development has no shared billable deployment to protect.
+        return;
+    }
+    day = int(time.time()) // 86400;
+    key = "tyyli:global:" + feature + ":" + str(day);
+    script = (
+        "local n=redis.call('INCR',KEYS[1]);"
+        "if n==1 then redis.call('EXPIRE',KEYS[1],ARGV[1]) end;"
+        "return n"
+    );
+    count = int(upstash_command(["EVAL", script, "1", key, "90000"]));
+    if count > limit {
+        raise RuntimeError(
+            "The AI service has reached today's shared safety limit. "
+            "Please try again tomorrow."
+        );
     }
 }
 

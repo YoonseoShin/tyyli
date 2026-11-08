@@ -8,6 +8,7 @@ import from jaclang.client.targets.react_native.common {
 
 
 glob SDK_58_DEPENDENCIES = {
+    "@expo/app-integrity": "58.0.2",
     "expo": "~58.0.22",
     "expo-asset": "~58.0.19",
     "expo-constants": "~58.0.14",

@@ -5,6 +5,7 @@ WORKDIR /app
 COPY --chown=jac:jac . /app
 
 USER jac
+RUN jac install "pyattest==1.0.5" --global --no-save --no-npm --no-cache-dir
 ENV PORT=10000 \
     PYTHONUNBUFFERED=1
 EXPOSE 10000

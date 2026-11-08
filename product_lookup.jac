@@ -25,6 +25,7 @@ import from urllib.error { HTTPError, URLError }
 import from urllib.parse { urlencode }
 import from urllib.request { Request, urlopen }
 import from .clothing_ai { _dev_setting, _send_claude_request }
+import from .app_integrity { authorize_paid_feature }
 import from .rate_limit { enforce_device_rate_limit }
 
 
@@ -422,7 +423,7 @@ def _pick(my_block: dict[str, any], pool: list[ProductCandidate], api_key: str) 
 
 
 def:pub find_product_online(image_data: str, device_id: str = "") -> ProductLookup {
-    enforce_device_rate_limit(device_id, "product-lookup", "TYYLI_RATE_LIMIT_PRODUCT_LOOKUP", 10);
+    authorize_paid_feature(device_id, "product-lookup", "TYYLI_RATE_LIMIT_PRODUCT_LOOKUP", 10);
     serpapi_key = _dev_setting("SERPAPI_KEY");
     if not serpapi_key {
         raise ValueError("SERPAPI_KEY is not set on the Jac server. Add it to .env (see .env.example) and restart.");

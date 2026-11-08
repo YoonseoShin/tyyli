@@ -2,7 +2,7 @@
 import from ..models { CalendarEvent, Outfit, OutfitExplanation, WeatherInfo }
 import from ..outfit_ai { explain_outfit_recommendations }
 import from ..storage { ClothingItem, StyleProfile }
-import from .device_identity { get_device_id }
+import from .app_integrity { get_feature_authorization }
 import from .weather_service { describe_weather }
 
 
@@ -62,8 +62,8 @@ async def:pub request_outfit_explanations(
             if item_id in by_id { lines.append(_item_line(by_id[item_id])); }
         }
     }
-    device_id = await get_device_id();
-    raw_explanations = await explain_outfit_recommendations("\n".join(lines), device_id);
+    authorization = await get_feature_authorization("outfit-explanation");
+    raw_explanations = await explain_outfit_recommendations("\n".join(lines), authorization);
     return [
         OutfitExplanation(
             color=value.get("color", ""),

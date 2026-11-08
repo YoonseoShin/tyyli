@@ -9,7 +9,7 @@ import random;
 import time;
 import from urllib.error { HTTPError, URLError }
 import from .clothing_ai { _dev_setting, _send_claude_request }
-import from .rate_limit { enforce_device_rate_limit }
+import from .app_integrity { authorize_paid_feature }
 
 
 obj:pub StyleIdentity {
@@ -67,7 +67,7 @@ def _clean_palette(raw: any) -> list[str] {
 
 
 def:pub discover_style(summary: str, device_id: str = "") -> StyleIdentity {
-    enforce_device_rate_limit(device_id, "style-identity", "TYYLI_RATE_LIMIT_STYLE_IDENTITY", 10);
+    authorize_paid_feature(device_id, "style-identity", "TYYLI_RATE_LIMIT_STYLE_IDENTITY", 10);
     api_key = _dev_setting("ANTHROPIC_API_KEY");
     if not api_key {
         raise ValueError("ANTHROPIC_API_KEY is not set on the Jac server.");

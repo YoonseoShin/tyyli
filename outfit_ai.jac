@@ -4,7 +4,7 @@ import random;
 import time;
 import from urllib.error { HTTPError, URLError }
 import from .clothing_ai { _dev_setting, _send_claude_request }
-import from .rate_limit { enforce_device_rate_limit }
+import from .app_integrity { authorize_paid_feature }
 
 
 def _recommendation_schema -> dict[str, any] {
@@ -83,7 +83,7 @@ def _parse_recommendations(response_data: dict[str, any]) -> list[dict[str, any]
 
 
 def:pub recommend_outfits(context: str, device_id: str = "") -> list[dict[str, any]] {
-    enforce_device_rate_limit(device_id, "outfit-recommendation", "TYYLI_RATE_LIMIT_RECOMMEND", 10);
+    authorize_paid_feature(device_id, "outfit-recommendation", "TYYLI_RATE_LIMIT_RECOMMEND", 10);
     api_key = _dev_setting("ANTHROPIC_API_KEY");
     if not api_key {
         raise ValueError("ANTHROPIC_API_KEY is not set on the Jac server.");
@@ -198,7 +198,7 @@ def _parse_explanations(response_data: dict[str, any]) -> list[dict[str, str]] {
 
 
 def:pub explain_outfit_recommendations(context: str, device_id: str = "") -> list[dict[str, str]] {
-    enforce_device_rate_limit(device_id, "outfit-explanation", "TYYLI_RATE_LIMIT_EXPLAIN", 10);
+    authorize_paid_feature(device_id, "outfit-explanation", "TYYLI_RATE_LIMIT_EXPLAIN", 10);
     api_key = _dev_setting("ANTHROPIC_API_KEY");
     if not api_key {
         raise ValueError("ANTHROPIC_API_KEY is not set on the Jac server.");
