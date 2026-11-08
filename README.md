@@ -196,6 +196,16 @@ device; no Render database is required.
    API description.
 6. Use the resulting HTTPS origin as the release app's `apiBaseUrl`.
 
+Paid AI and search endpoints are limited per app installation. The app creates
+an anonymous installation id in device storage and the server keeps only its
+hash. Default hourly limits are 10 clothing analyses, 10 recommendation calls,
+10 explanation calls, 10 visual product lookups, 20 text product searches, 60
+product-image downloads, 30 stylist messages, and 10 style-profile analyses.
+Change the `TYYLI_RATE_LIMIT_*` values in Render when different limits are
+needed. These lightweight counters live in server memory and reset when the
+free Render instance restarts; they are cost-control guardrails for the MVP,
+not a replacement for authentication or a durable distributed rate limiter.
+
 The release client is currently configured to use
 `https://tyyli-api.onrender.com`. `scripts/compile_mobile.jac` writes that URL,
 the Tyyli app name, and the iOS bundle identifier

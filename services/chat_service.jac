@@ -4,6 +4,7 @@ import from ..models { CalendarEvent, ChatMessage, ShopItem, WeatherInfo }
 import from ..storage { ClothingItem, StyleProfile }
 import from ..stylist_ai { StylistReply, StylistTurn, chat_with_stylist }
 import from .dates { date_key, day_label }
+import from .device_identity { get_device_id }
 import from .weather_service { describe_weather }
 
 
@@ -88,7 +89,8 @@ async def:pub send_chat_message(
 ) -> ChatMessage {
     turns = [StylistTurn(role=m.role, text=m.text) for m in history];
     context = build_stylist_context(clothes, profile, weather, events);
-    reply: StylistReply = await chat_with_stylist(turns, context);
+    device_id = await get_device_id();
+    reply: StylistReply = await chat_with_stylist(turns, context, device_id);
     known = [c.clothing_item_id for c in clothes];
     ids = [i for i in reply.clothing_item_ids if i in known];
     shop_items: list[ShopItem] = [];

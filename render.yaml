@@ -13,5 +13,23 @@ services:
         generateValue: true
       - key: CLAUDE_MODEL
         value: claude-opus-5-5
+      - key: TYYLI_RATE_LIMIT_WINDOW_SECONDS
+        value: "3600"
+      - key: TYYLI_RATE_LIMIT_ANALYZE
+        value: "10"
+      - key: TYYLI_RATE_LIMIT_RECOMMEND
+        value: "10"
+      - key: TYYLI_RATE_LIMIT_EXPLAIN
+        value: "10"
+      - key: TYYLI_RATE_LIMIT_PRODUCT_LOOKUP
+        value: "10"
+      - key: TYYLI_RATE_LIMIT_PRODUCT_SEARCH
+        value: "20"
+      - key: TYYLI_RATE_LIMIT_IMAGE_FETCH
+        value: "60"
+      - key: TYYLI_RATE_LIMIT_CHAT
+        value: "30"
+      - key: TYYLI_RATE_LIMIT_STYLE_IDENTITY
+        value: "10"
       - key: PYTHONUNBUFFERED
         value: "1"

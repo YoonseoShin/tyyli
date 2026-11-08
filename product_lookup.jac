@@ -25,6 +25,7 @@ import from urllib.error { HTTPError, URLError }
 import from urllib.parse { urlencode }
 import from urllib.request { Request, urlopen }
 import from .clothing_ai { _dev_setting, _send_claude_request }
+import from .rate_limit { enforce_device_rate_limit }
 
 
 obj:pub ProductCandidate {
@@ -420,7 +421,8 @@ def _pick(my_block: dict[str, any], pool: list[ProductCandidate], api_key: str) 
 }
 
 
-def:pub find_product_online(image_data: str) -> ProductLookup {
+def:pub find_product_online(image_data: str, device_id: str = "") -> ProductLookup {
+    enforce_device_rate_limit(device_id, "product-lookup", "TYYLI_RATE_LIMIT_PRODUCT_LOOKUP", 10);
     serpapi_key = _dev_setting("SERPAPI_KEY");
     if not serpapi_key {
         raise ValueError("SERPAPI_KEY is not set on the Jac server. Add it to .env (see .env.example) and restart.");
@@ -523,7 +525,8 @@ def:pub find_product_online(image_data: str) -> ProductLookup {
 }
 
 
-def:pub fetch_product_image(image_url: str, fallback_url: str = "") -> str {
+def:pub fetch_product_image(image_url: str, fallback_url: str = "", device_id: str = "") -> str {
+    enforce_device_rate_limit(device_id, "product-image-fetch", "TYYLI_RATE_LIMIT_IMAGE_FETCH", 60);
     # Downloads a product photo on the server (browser user agent, so shop CDNs
     # that block app downloads still work) and returns it as an image data URL.
     # Falls back to the thumbnail; returns "" when neither can be fetched.
@@ -548,7 +551,8 @@ def:pub fetch_product_image(image_url: str, fallback_url: str = "") -> str {
 }
 
 
-def:pub search_product_images(query: str) -> list[ProductCandidate] {
+def:pub search_product_images(query: str, device_id: str = "") -> list[ProductCandidate] {
+    enforce_device_rate_limit(device_id, "product-text-search", "TYYLI_RATE_LIMIT_PRODUCT_SEARCH", 20);
     # Text search ("aritzia super puff navy"): Google Images product photos the
     # user can pick from. Social pages are dropped; the rest is left in Google's order.
     serpapi_key = _dev_setting("SERPAPI_KEY");

@@ -13,6 +13,7 @@ import from urllib.error { HTTPError, URLError }
 import from urllib.parse { urlencode }
 import from urllib.request { Request, urlopen }
 import from .clothing_ai { _dev_setting, _send_claude_request }
+import from .rate_limit { enforce_device_rate_limit }
 
 
 obj:pub StylistTurn {
@@ -160,7 +161,8 @@ def _shopping_results(raw: any) -> list[ShopSuggestion] {
 }
 
 
-def:pub chat_with_stylist(history: list[StylistTurn], context: str) -> StylistReply {
+def:pub chat_with_stylist(history: list[StylistTurn], context: str, device_id: str = "") -> StylistReply {
+    enforce_device_rate_limit(device_id, "stylist-chat", "TYYLI_RATE_LIMIT_CHAT", 30);
     api_key = _dev_setting("ANTHROPIC_API_KEY");
     if not api_key {
         raise ValueError(
