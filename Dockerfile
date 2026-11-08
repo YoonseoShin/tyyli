@@ -3,9 +3,9 @@ FROM jaseci/jaclang:0.37.25
 USER root
 WORKDIR /app
 COPY --chown=jac:jac . /app
+RUN jac install "pyattest==1.0.5" --global --no-save --no-npm --no-cache-dir
 
 USER jac
-RUN jac install "pyattest==1.0.5" --global --no-save --no-npm --no-cache-dir
 ENV PORT=10000 \
     PYTHONUNBUFFERED=1
 EXPOSE 10000
