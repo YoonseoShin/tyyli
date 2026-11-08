@@ -21,14 +21,15 @@ import from .rate_limit {
 
 
 def _verifier_types -> tuple[any, any, any, any] {
-    pyattest = importlib.import_module("pyattest");
+    assertion_module = importlib.import_module("pyattest.assertion");
+    attestation_module = importlib.import_module("pyattest.attestation");
     apple_config = importlib.import_module("pyattest.configs.apple");
     serialization = importlib.import_module(
         "cryptography.hazmat.primitives.serialization"
     );
     return (
-        pyattest.Assertion,
-        pyattest.Attestation,
+        assertion_module.Assertion,
+        attestation_module.Attestation,
         apple_config.AppleConfig,
         serialization.load_der_public_key
     );
