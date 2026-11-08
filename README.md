@@ -204,12 +204,13 @@ each paid request receives a fresh one-use authorization. The private key
 never leaves the phone. Upstash stores the public key, replay counter,
 five-minute challenges, one-minute authorizations, and rate counters.
 
-Default hourly limits are 10 clothing analyses, 10 recommendation calls, 10
-explanation calls, 10 visual product lookups, 30 stylist messages, and 10
-style-profile analyses per attested installation. A shared limit of 200 Claude
+Default hourly limits are 30 clothing analyses, 30 recommendation calls, 30
+explanation calls, 30 visual product lookups, 100 stylist messages, and 30
+style-profile analyses per attested installation. A shared limit of 500 Claude
 requests per UTC day is controlled by `TYYLI_CLAUDE_GLOBAL_DAILY_LIMIT`.
-Text product searches and image downloads keep their separate limits. Change
-the corresponding `TYYLI_RATE_LIMIT_*` values in Render when needed.
+SerpAPI-only text searches and product image downloads are not rate-limited by
+the app. Change the corresponding `TYYLI_RATE_LIMIT_*` values in Render when
+needed for Claude-backed features.
 
 App Attest cannot be tested in Expo Go or the iOS simulator. Compile a new EAS
 build and install it through TestFlight on a physical iPhone. Keep

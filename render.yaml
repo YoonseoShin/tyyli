@@ -26,24 +26,20 @@ services:
       - key: TYYLI_IOS_BUNDLE_ID
         value: com.yoonseoshin.tyyli
       - key: TYYLI_CLAUDE_GLOBAL_DAILY_LIMIT
-        value: "200"
+        value: "500"
       - key: TYYLI_RATE_LIMIT_WINDOW_SECONDS
         value: "3600"
       - key: TYYLI_RATE_LIMIT_ANALYZE
-        value: "10"
-      - key: TYYLI_RATE_LIMIT_RECOMMEND
-        value: "10"
-      - key: TYYLI_RATE_LIMIT_EXPLAIN
-        value: "10"
-      - key: TYYLI_RATE_LIMIT_PRODUCT_LOOKUP
-        value: "10"
-      - key: TYYLI_RATE_LIMIT_PRODUCT_SEARCH
-        value: "20"
-      - key: TYYLI_RATE_LIMIT_IMAGE_FETCH
-        value: "60"
-      - key: TYYLI_RATE_LIMIT_CHAT
         value: "30"
+      - key: TYYLI_RATE_LIMIT_RECOMMEND
+        value: "30"
+      - key: TYYLI_RATE_LIMIT_EXPLAIN
+        value: "30"
+      - key: TYYLI_RATE_LIMIT_PRODUCT_LOOKUP
+        value: "30"
+      - key: TYYLI_RATE_LIMIT_CHAT
+        value: "100"
       - key: TYYLI_RATE_LIMIT_STYLE_IDENTITY
-        value: "10"
+        value: "30"
       - key: PYTHONUNBUFFERED
         value: "1"
