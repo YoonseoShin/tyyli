@@ -20,6 +20,9 @@ def _recommendation_schema -> dict[str, any] {
                         "style_name": {"type": "string"},
                         "clothing_item_ids": {"type": "array", "items": {"type": "string"}},
                         "confidence": {"type": "integer"},
+                        "headline": {"type": "string"},
+                        "summary": {"type": "string"},
+                        "keywords": {"type": "array", "items": {"type": "string"}},
                         "color": {"type": "string"},
                         "mood": {"type": "string"},
                         "weather": {"type": "string"},
@@ -28,6 +31,7 @@ def _recommendation_schema -> dict[str, any] {
                     },
                     "required": [
                         "target_type", "event_id", "style_name", "clothing_item_ids", "confidence",
+                        "headline", "summary", "keywords",
                         "color", "mood", "weather", "plans", "personal"
                     ],
                     "additionalProperties": False
@@ -62,12 +66,17 @@ def _parse_recommendations(response_data: dict[str, any]) -> list[dict[str, any]
         for value in values {
             if isinstance(value, dict) {
                 raw_ids = value.get("clothing_item_ids", []);
+                raw_keywords = value.get("keywords", []);
                 recommendations.append({
                     "target_type": str(value.get("target_type", "")).strip(),
                     "event_id": str(value.get("event_id", "")).strip(),
                     "style_name": str(value.get("style_name", "")).strip(),
                     "clothing_item_ids": [str(item_id) for item_id in raw_ids] if isinstance(raw_ids, list) else [],
                     "confidence": int(value.get("confidence", 0)),
+                    # Optional so a response from an older prompt still parses.
+                    "headline": str(value.get("headline", "") or "").strip(),
+                    "summary": str(value.get("summary", "") or "").strip(),
+                    "keywords": [str(word).strip() for word in raw_keywords if str(word).strip()] if isinstance(raw_keywords, list) else [],
                     "color": str(value.get("color", "")).strip(),
                     "mood": str(value.get("mood", "")).strip(),
                     "weather": str(value.get("weather", "")).strip(),
@@ -106,11 +115,22 @@ def:pub recommend_outfits(context: str) -> list[dict[str, any]] {
         "at least one item between every pair of looks. You must calculate confidence as the "
         "overall Style Score from 0 to 100. Judge it holistically using weather suitability, schedule practicality, "
         "the user's preferences and proportions, color harmony, outfit completeness, and whether recent pieces "
-        "were unnecessarily repeated. Do not give a high score merely because metadata is present. Every explanation "
-        "field must be a complete sentence "
-        "that explains why the choice works, not a label or list. Only discuss body-shape suitability when "
-        "an item's supplied visual details contain relevant silhouette evidence. Keep each field under 28 "
-        "words.\n\n" + context
+        "were unnecessarily repeated. Do not give a high score merely because metadata is present.\n\n"
+        "Write the styling copy as a concise personal stylist: specific, confident and warm. Name actual pieces "
+        "the way the closet lists them. No filler such as 'This outfit is perfect for', no exclamation marks, "
+        "and never mention AI. Use only supplied facts; never invent a material, fit, feature or plan. "
+        "style_name: two or three words naming the look. "
+        "headline: the stylist's one-line take on the look, at most 8 words, no final period. "
+        "summary: one or two sentences, at most 32 words in total, naming the key pieces and the main reason "
+        "the look works for today's plans or weather; do not repeat the headline. "
+        "keywords: 2 or 3 short styling descriptors of 1 to 3 words each, such as a palette, silhouette or "
+        "layering idea, derived only from the supplied colors, style tags, categories and weather; never a "
+        "score, brand, size or invented attribute. "
+        "color, mood, weather, plans and personal: one complete sentence each, at most 18 words, explaining "
+        "why that aspect works (the palette; the combined mood; warmth, layers or rain protection for the "
+        "forecast; polish and practicality for the schedule; the user's saved styles, colors and occasions). "
+        "Do not repeat the summary word for word. Only discuss body-shape suitability when an item's supplied "
+        "visual details contain relevant silhouette evidence.\n\n" + context
     );
     model = _dev_setting("CLAUDE_MODEL", "claude-opus-5-5");
     payload = {

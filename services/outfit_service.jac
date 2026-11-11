@@ -468,7 +468,8 @@ def:pub apply_swaps(
         }
     }
     # Swapping is a visual try-on tool. The explanation intentionally remains
-    # about the original AI suggestion rather than evaluating user-made swaps.
+    # about the original AI suggestion rather than evaluating user-made swaps;
+    # Outfit Picks says so whenever the pieces differ from the original.
     return Outfit(
         outfit_id=outfit.outfit_id,
         date=outfit.date,
@@ -483,6 +484,9 @@ def:pub apply_swaps(
         clothing_item_ids=ids,
         event_title=outfit.event_title,
         match_reasons=outfit.match_reasons,
-        confidence=outfit.confidence
+        confidence=outfit.confidence,
+        headline=outfit.headline,
+        summary=outfit.summary,
+        keywords=outfit.keywords
     );
 }

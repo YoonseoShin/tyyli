@@ -65,7 +65,7 @@ def PickCard(outfit: Outfit, clothes: list[ClothingItem], top: bool, weather_lab
     pick_label = "TOP PICK" if top else (outfit.match_reasons[1].upper() if len(outfit.match_reasons) > 1 else "PICK");
     return <Pressable onPress={lambda { on_press(); }} style={[ui.card, {"width": 168, "padding": 12, "gap": 8, "borderWidth": 2 if top else 1, "borderColor": C.accent if top else C.line}]}>
         <View style={[ui.chip, {"alignSelf": "flex-start", "backgroundColor": C.soft if top else C.surface, "borderWidth": 1, "borderColor": C.accent if top else C.line, "paddingVertical": 4}]}>
-            <Text style={{"fontSize": 10, "fontWeight": "bold", "letterSpacing": 0.8, "color": C.accent if top else C.muted}}>{pick_label}</Text>
+            <Text style={{"fontSize": 10, "fontWeight": "bold", "letterSpacing": 0.8, "color": C.text_secondary if top else C.muted}}>{pick_label}</Text>
         </View>
         <OutfitCollage items={items} compact={True} height={130} item_cards={False}/>
         <Text style={{"fontSize": 15, "fontWeight": "bold", "color": ink}} numberOfLines={1}>{outfit.style_name}</Text>

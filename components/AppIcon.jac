@@ -4,5 +4,5 @@ import from ..ui.kit { C }
 
 
 def:pub AppIcon(name: str, size: int = 20, color: str = "") -> JsxElement {
-    return <MaterialCommunityIcons name={name} size={size} color={color or C.ink}/>;
+    return <MaterialCommunityIcons name={name} size={size} color={color or C.text_primary}/>;
 }

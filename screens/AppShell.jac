@@ -265,6 +265,7 @@ def:pub AppShell -> JsxElement {
 
     if route == "calendar" {
         return <View style={ui.app}>
+            {(<View style={ui.safeAreaBleed} pointerEvents="none"/>) if Platform.OS != "web" else None}
             <CalendarScreen
                 events={events}
                 on_add_event={lambda (title: str, date: str, start_time: str, kind: str, formality: int, recurrence: str, is_major: bool) { add_event(title, date, start_time, kind, formality, recurrence, is_major); }}
@@ -282,6 +283,8 @@ def:pub AppShell -> JsxElement {
     worn_today = [",".join(sorted(l.clothing_item_ids)) for l in looks if l.date == date_key(0)];
 
     return <View style={ui.app}>
+        {#* Paints the safe-area strips the generated native shell leaves white. *#}
+        {(<View style={ui.safeAreaBleed} pointerEvents="none"/>) if Platform.OS != "web" else None}
         {(<Text style={[ui.muted, {"padding": 16}]}>{load_error}</Text>) if load_error else None}
         <View style={ui.flex1}>
             {(<HomeScreen
