@@ -25,10 +25,13 @@ def _text(raw: dict[str, any], key: str) -> str {
 }
 
 
+# Picks saved before headline/summary/keywords existed load with those empty;
+# the Stylist's note then falls back to the style name and an existing reason.
 def _outfit_from_json(raw: dict[str, any]) -> Outfit {
     ids = raw.get("clothing_item_ids");
     reasons = raw.get("match_reasons");
     confidence = raw.get("confidence");
+    keywords = raw.get("keywords");
     return Outfit(
         outfit_id=_text(raw, "outfit_id"),
         date=_text(raw, "date"),
@@ -43,7 +46,10 @@ def _outfit_from_json(raw: dict[str, any]) -> Outfit {
         clothing_item_ids=ids if ids else [],
         event_title=_text(raw, "event_title"),
         match_reasons=reasons if reasons else [],
-        confidence=int(confidence) if confidence else 0
+        confidence=int(confidence) if confidence else 0,
+        headline=_text(raw, "headline"),
+        summary=_text(raw, "summary"),
+        keywords=[str(word) for word in keywords if word] if keywords else []
     );
 }
 
@@ -63,7 +69,10 @@ def _outfit_to_json(outfit: Outfit) -> dict[str, any] {
         "clothing_item_ids": outfit.clothing_item_ids,
         "event_title": outfit.event_title,
         "match_reasons": outfit.match_reasons,
-        "confidence": outfit.confidence
+        "confidence": outfit.confidence,
+        "headline": outfit.headline,
+        "summary": outfit.summary,
+        "keywords": outfit.keywords
     };
 }
 

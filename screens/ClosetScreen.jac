@@ -613,7 +613,7 @@ def:pub ClosetScreen(clothes: list[ClothingItem], on_changed: Callable[[], None]
                         <View style={[ui.row, {"gap": 6}]}>
                             <Text style={[ui.chipText, ui.chipTextOn] if chip[0] == category_filter else ui.chipText}>{chip[0]}</Text>
                             <View style={{"minWidth": 20, "height": 20, "paddingHorizontal": 5, "borderRadius": 999, "alignItems": "center", "justifyContent": "center", "backgroundColor": C.accent if chip[0] == category_filter else C.soft}}>
-                                <Text style={{"fontSize": 10, "fontWeight": "bold", "color": C.accent_text if chip[0] == category_filter else C.muted}}>{str(category_count(clothes, chip))}</Text>
+                                <Text style={{"fontSize": 10, "fontWeight": "bold", "color": C.primary if chip[0] == category_filter else C.muted}}>{str(category_count(clothes, chip))}</Text>
                             </View>
                         </View>
                     </Pressable>

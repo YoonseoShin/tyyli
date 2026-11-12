@@ -51,7 +51,13 @@ obj:pub Outfit {
         clothing_item_ids: list[str] = [],
         event_title: str = "",
         match_reasons: list[str] = [],
-        confidence: int = 0;
+        confidence: int = 0,
+        # The stylist's concise note (DESIGN_SYSTEM.md 9). Empty on picks saved
+        # before these existed; the UI then falls back to style_name and the
+        # first reason above.
+        headline: str = "",
+        summary: str = "",
+        keywords: list[str] = [];
 }
 
 

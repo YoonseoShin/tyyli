@@ -83,6 +83,19 @@ def _recent_history(
 }
 
 
+# At most three short, distinct keywords (DESIGN_SYSTEM.md 9).
+def _keywords(value: any) -> list[str] {
+    words: list[str] = [];
+    if not isinstance(value, list) { return words; }
+    for raw in value {
+        word = str(raw).strip();
+        if word and word.lower() not in [w.lower() for w in words] { words.append(word); }
+        if len(words) == 3 { break; }
+    }
+    return words;
+}
+
+
 def _int_score(value: any) -> int {
     try { return max(0, min(100, int(value))); }
     except Exception { return 0; }
@@ -258,7 +271,10 @@ async def:pub request_ai_outfit_recommendations(
                 clothing_item_ids=ids,
                 event_title=event_title,
                 match_reasons=match_reasons,
-                confidence=_int_score(value.get("confidence", 0))
+                confidence=_int_score(value.get("confidence", 0)),
+                headline=str(value.get("headline", "") or "").strip(),
+                summary=str(value.get("summary", "") or "").strip(),
+                keywords=_keywords(value.get("keywords", []))
             );
             if target_type == "all_day" { all_day = result; }
             else { event_results[event_id] = result; }
