@@ -1,9 +1,12 @@
 """The user's style profile, presented as compact cards and readable tags."""
-import from "@jac/mobui" { Pressable, ScrollView, Text, View }
+import from "@jac/mobui" { Linking, Pressable, ScrollView, Text, View }
 import from ..components.AppIcon { AppIcon }
 import from ..storage { StyleProfile }
 import from ..theme { indexed }
 import from ..ui.kit { C, SERIF, ui }
+
+
+glob PRIVACY_POLICY_URL: str = "https://github.com/YoonseoShin/tyyli/blob/release/PRIVACY.md";
 
 
 def ProfileTags(label: str, values: list[str]) -> JsxElement {
@@ -103,6 +106,14 @@ def:pub ProfileScreen(
             <ProfileTags label="STORES" values={profile.favorite_stores}/>
             <View style={ui.divider}/>
             <ProfileTags label="BRANDS" values={profile.favorite_brands}/>
+        </View>
+
+        <View style={[ui.card, {"gap": 10}]}>
+            <Text style={ui.heading}>Privacy & AI</Text>
+            <Text style={ui.muted}>Your closet and profile are saved on this device. When you use an AI feature, only the information needed for that request is sent securely to Tyyli's AI service.</Text>
+            <Pressable accessibilityRole="link" onPress={lambda { Linking.openURL(PRIVACY_POLICY_URL); }}>
+                <Text style={[ui.bodyBold, {"color": C.accent}]}>Read Privacy Policy  →</Text>
+            </Pressable>
         </View>
 
         {(<View style={ui.card}>

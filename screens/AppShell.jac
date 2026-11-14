@@ -29,6 +29,21 @@ import from .ProfileScreen { ProfileScreen }
 # Screens that show the bottom nav bar. "outfits" (Outfit Picks) is opened from
 # Home rather than the bar, so the bar highlights Home while it is open.
 glob TAB_IDS: list[str] = ["home", "closet", "outfits", "chat", "history", "profile"];
+glob API_HEALTH_URL: str = "https://tyyli-api.onrender.com/openapi.json";
+
+
+# Render's free service may be asleep after a period of inactivity. Start one
+# harmless request as soon as the app opens, without making local data wait for
+# it. By the time the user reaches an AI action, the API is usually awake.
+async def prewarm_api {
+    try {
+        response = await fetch(API_HEALTH_URL);
+        print("[api] prewarm " + str(response.status));
+    } except Exception as e {
+        # Offline use and local storage must keep working when the API is down.
+        print("[api] prewarm skipped: " + str(e));
+    }
+}
 
 
 def:pub AppShell -> JsxElement {
@@ -85,6 +100,7 @@ def:pub AppShell -> JsxElement {
     }
 
     async can with entry {
+        prewarm_api();
         # While the keyboard is up, the shell shrinks by its height and the tab
         # bar hides, so text inputs on every screen stay visible above it.
         if Platform.OS != "web" {

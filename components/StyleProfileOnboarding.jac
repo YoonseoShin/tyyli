@@ -8,7 +8,7 @@ Editing an existing profile starts straight at the first question.
 """
 import from "@jac/mobui" { Image, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions }
 import from ..assets_body_shapes { BODY_SHAPE_CREDIT, BODY_SHAPE_IMAGES }
-import from ..services.style_identity_service { discover_style_identity }
+import from ..services.style_identity_service { discover_style_identity, local_identity }
 import from ..storage { StyleProfile }
 import from ..theme { C, indexed, styles }
 import from .Dropdown { Dropdown }
@@ -63,7 +63,7 @@ glob HINTS: dict[str, str] = {
     "colors": "Pick the colors you reach for most.",
     "occasions": "Select the moments you want outfits for.",
     "fit": "Sizes help the stylist suggest pieces that actually fit.",
-    "shape": "Two measurements and a shape make shopping suggestions much more accurate. It stays on your phone.",
+    "shape": "Two measurements and a shape make shopping suggestions much more accurate. You can skip anything you do not want to share.",
     "stores": "Pick your go-to stores, or add your own.",
     "brands": "Pick the labels you wear most, or add your own.",
     "inspiration": "A celebrity, creator, or anyone whose looks you love.",
@@ -230,8 +230,14 @@ def:pub StyleProfileOnboarding(
     async can with [step] entry {
         if step == GENERATING {
             draft = build_profile();
-            await _wait(1400);
-            identity = await discover_style_identity(draft, style_notes);
+            try {
+                identity = await discover_style_identity(draft, style_notes);
+            } except Exception as e {
+                # Onboarding must never trap the user because the hosted AI is
+                # sleeping, offline, or temporarily unavailable.
+                print("[style] onboarding fallback: " + str(e));
+                identity = local_identity(draft);
+            }
             step = RESULT;
         }
         if step == WELCOME {
@@ -366,14 +372,14 @@ def:pub StyleProfileOnboarding(
                 </View>
                 <View style={styles.footer}>
                     <PillButton label="Get styled" on_press={lambda { step = HOW; }}/>
-                    <Text style={styles.footnote}>About two minutes. Your answers stay on your phone.</Text>
+                    <Text style={styles.footnote}>About two minutes. Your profile is saved on this phone; selected answers are sent to our AI service to personalize it.</Text>
                 </View>
             </Reveal>}
 
             {step == HOW and <Reveal key="how" grow={True}>
                 <View style={styles.hero}>
                     <Text style={styles.headline}>How does the algorithm work?</Text>
-                    <Text style={styles.leadSmall}>We use AI to design personalized outfits for you based on a quiz, the current weather, and how your day looks in your personal calendar.</Text>
+                    <Text style={styles.leadSmall}>We use AI to design personalized outfits based on your quiz, the current weather, and the plans you add to the app.</Text>
                 </View>
                 <View style={styles.footer}>
                     <PillButton label="Continue" on_press={lambda { step = INTRO; }}/>
