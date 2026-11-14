@@ -43,8 +43,10 @@ def:pub build_stylist_context(
             + "; favourite colours " + _join(profile.preferred_colors)
             + "; dresses mostly for " + _join(profile.occasions)
             + (("; inspiration: " + profile.inspiration) if profile.inspiration else "")
-            + (("; MBTI " + profile.mbti) if profile.mbti else "")
-            + (("; zodiac " + profile.zodiac) if profile.zodiac else "") + ".");
+            # MBTI and zodiac are intentionally excluded from AI chat context.
+            # + (("; MBTI " + profile.mbti) if profile.mbti else "")
+            # + (("; zodiac " + profile.zodiac) if profile.zodiac else "")
+            + ".");
         fit = [v for v in [
             ("shops the " + profile.shop_section + " section") if profile.shop_section else "",
             ("height " + profile.height) if profile.height else "",

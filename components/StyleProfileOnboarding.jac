@@ -146,8 +146,9 @@ def:pub StyleProfileOnboarding(
         selected_colors: list[str] = initial.preferred_colors if initial else [],
         selected_occasions: list[str] = initial.occasions if initial else [],
         inspiration: str = initial.inspiration if initial else "",
-        mbti: str = initial.mbti if initial else "",
-        zodiac: str = initial.zodiac if initial else "",
+        # MBTI and zodiac inputs are intentionally disabled.
+        # mbti: str = initial.mbti if initial else "",
+        # zodiac: str = initial.zodiac if initial else "",
         shop_section: str = initial.shop_section if initial else "",
         height_unit: str = _unit_of(initial.height, "ft") if initial else "ft",
         height_ft: str = _parse_feet(initial.height)[0] if initial else "",
@@ -203,8 +204,9 @@ def:pub StyleProfileOnboarding(
             preferred_colors=selected_colors,
             occasions=selected_occasions,
             inspiration=inspiration,
-            mbti=mbti,
-            zodiac=zodiac,
+            # Clear legacy personality values whenever the profile is saved.
+            mbti="",
+            zodiac="",
             shop_section=shop_section,
             units=measure_unit,
             height=height_text(),
@@ -343,8 +345,6 @@ def:pub StyleProfileOnboarding(
         else len(selected_stores) > 0 if key == "stores"
         else len(selected_brands) > 0 if key == "brands"
         else bool(inspiration.strip()) if key == "inspiration"
-        else bool(mbti) if key == "mbti"
-        else bool(zodiac) if key == "zodiac"
         else picks > 0
     );
     last_question = step == GENERATING - 1;
@@ -503,8 +503,6 @@ def:pub StyleProfileOnboarding(
                     <TextInput style={styles.input} value={inspiration} placeholder="e.g. Zendaya, Emma Chamberlain" placeholderTextColor={C["copySoft"]} onChangeText={lambda (t: str) { inspiration = t; }}/>
                 </View>}
                 # MBTI and zodiac question views are intentionally hidden.
-                # {key == "mbti" and <View style={styles.optionColumns}>{[<OptionPill key={x} label={x} active={mbti == x} half={True} spaced={True} on_press={lambda { mbti = "" if mbti == x else x; }}/> for x in options["mbti"]]}</View>}
-                # {key == "zodiac" and <View style={styles.optionColumns}>{[<OptionPill key={x} label={x} active={zodiac == x} half={True} on_press={lambda { zodiac = "" if zodiac == x else x; }}/> for x in options["zodiac"]]}</View>}
 
                 <View style={styles.spacer}/>
                 <View style={styles.footer}>

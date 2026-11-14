@@ -50,7 +50,8 @@ def:pub ProfileScreen(
         </ScrollView>;
     }
 
-    personality = [value for value in [profile.mbti, profile.zodiac] if value];
+    # MBTI and zodiac are intentionally not shown in the profile. Their model
+    # fields remain only so profiles saved by older builds still load safely.
     fit_summary = [value for value in [profile.shop_section, profile.body_shape] if value];
 
     return <ScrollView style={ui.screen} contentContainerStyle={[ui.page, {"gap": 14}]}>
@@ -77,8 +78,7 @@ def:pub ProfileScreen(
             <ProfileTags label="COLORS" values={profile.preferred_colors}/>
             <View style={ui.divider}/>
             <ProfileTags label="DRESSING FOR" values={profile.occasions}/>
-            <View style={ui.divider}/>
-            <ProfileTags label="PERSONALITY" values={personality}/>
+            # MBTI and zodiac profile tags are intentionally hidden.
             {(
                 <View style={{"padding": 12, "borderRadius": 14, "backgroundColor": C.soft, "gap": 4}}>
                     <Text style={ui.label}>INSPIRED BY</Text>
