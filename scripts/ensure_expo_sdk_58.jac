@@ -26,7 +26,11 @@ glob SDK_58_DEPENDENCIES = {
     "react-native-safe-area-context": "~5.10.1",
     "react-native-screens": "~4.30.1",
     "@expo/vector-icons": "^15.0.2",
-    "@react-native-async-storage/async-storage": "2.2.0"
+    "@react-native-async-storage/async-storage": "2.2.0",
+    # Typefaces loaded by ui/fonts.native.jac (DESIGN_SYSTEM.md 3.1).
+    "expo-font": "~58.0.11",
+    "@expo-google-fonts/dm-sans": "^0.4.2",
+    "@expo-google-fonts/instrument-serif": "^0.4.1"
 },
 SDK_58_DEV_DEPENDENCIES = {
     "babel-preset-expo": "~58.0.20",

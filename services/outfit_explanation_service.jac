@@ -101,7 +101,10 @@ def:pub apply_ai_explanations(picks: list[Outfit], explanations: list[OutfitExpl
             clothing_item_ids=pick.clothing_item_ids,
             event_title=pick.event_title,
             match_reasons=pick.match_reasons,
-            confidence=pick.confidence
+            confidence=pick.confidence,
+            headline=pick.headline,
+            summary=pick.summary,
+            keywords=pick.keywords
         ));
     }
     return enriched;
