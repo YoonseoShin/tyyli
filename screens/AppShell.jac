@@ -7,12 +7,13 @@ import from "@jac/mobui" { Keyboard, Platform, Text, View }
 import from ..components.StyleProfileOnboarding { StyleProfileOnboarding }
 import from ..components.TabBar { TabBar }
 import from ..models { CalendarEvent, ChatMessage, HistoryEntry, Outfit, WeatherInfo }
+import from ..photo_storage { clear_clothing_photos }
 import from ..services.ai_outfit_service { request_ai_outfit_recommendations }
-import from ..services.calendar_service { add_manual_events, events_on, get_week_events, save_week_events }
+import from ..services.calendar_service { add_manual_events, clear_week_events, events_on, get_week_events, remove_event_occurrence, save_week_events }
 import from ..services.chat_service { send_chat_message }
 import from ..services.dates { date_key }
-import from ..services.history_store { delete_history_entry, load_history, save_history_entry }
-import from ..services.outfit_pick_store { load_daily_outfit_picks, save_daily_outfit_picks }
+import from ..services.history_store { clear_history, delete_history_entry, load_history, save_history_entry }
+import from ..services.outfit_pick_store { clear_daily_outfit_picks, load_daily_outfit_picks, save_daily_outfit_picks }
 import from ..services.outfit_service { build_picks }
 import from ..services.weather_service { get_today_weather }
 import from ..storage { LocalUserData, StyleProfile, clear_local_data, load_local_data, save_profile }
@@ -143,7 +144,20 @@ def:pub AppShell -> JsxElement {
 
     async def update_today_events(updated: list[CalendarEvent]) {
         today = date_key(0);
-        events = [event for event in events if event.date != today] + updated;
+        shown_today = events_on(events, today);
+        shown_ids = [event.event_id for event in shown_today];
+        updated_ids = [event.event_id for event in updated];
+        stored_ids = [event.event_id for event in events];
+        next_events: list[CalendarEvent] = [];
+        for event in events {
+            if event.event_id in shown_ids and event.event_id not in updated_ids {
+                next_events = remove_event_occurrence(next_events + [event], event.event_id, today);
+            } else {
+                next_events.append(event);
+            }
+        }
+        next_events = next_events + [event for event in updated if event.event_id not in stored_ids];
+        events = next_events;
         try {
             await save_week_events(events);
             load_error = "";
@@ -162,7 +176,17 @@ def:pub AppShell -> JsxElement {
         }
     }
 
-    async def remove_event(event_id: str) {
+    async def remove_occurrence(event_id: str, date: str) {
+        events = remove_event_occurrence(events, event_id, date);
+        try {
+            await save_week_events(events);
+            load_error = "";
+        } except Exception as e {
+            load_error = "Could not save the test schedule: " + str(e);
+        }
+    }
+
+    async def remove_event_rule(event_id: str) {
         events = [event for event in events if event.event_id != event_id];
         try {
             await save_week_events(events);
@@ -179,16 +203,33 @@ def:pub AppShell -> JsxElement {
         messages = messages[:index];
     }
 
-    # Developer reset: wipe everything on the device and start from the splash.
+    # Remove every piece of user-created data and return to first-run onboarding.
+    # The installation ID and App Attest key stay intact because they secure API
+    # access rather than representing user content.
     async def reset_app_data {
-        await clear_local_data();
-        messages = [];
-        route = "";
-        tab = "home";
-        ai_picks = [];
-        outfit_variation = 0;
-        looks = [];
-        await reload();
+        load_error = "";
+        try {
+            await clear_week_events();
+            await clear_history();
+            await clear_daily_outfit_picks();
+            await clear_clothing_photos();
+            await clear_local_data();
+
+            data = LocalUserData();
+            events = [];
+            messages = [];
+            ai_picks = [];
+            looks = [];
+            outfit_variation = 0;
+            pick_index = 0;
+            temperature_unit = "F";
+            sending = False;
+            regenerating = False;
+            route = "";
+            tab = "home";
+        } except Exception as e {
+            load_error = "Could not reset all app data: " + str(e);
+        }
     }
 
     def open_pick(index: int) {
@@ -285,7 +326,8 @@ def:pub AppShell -> JsxElement {
             <CalendarScreen
                 events={events}
                 on_add_event={lambda (title: str, date: str, start_time: str, kind: str, formality: int, recurrence: str, is_major: bool) { add_event(title, date, start_time, kind, formality, recurrence, is_major); }}
-                on_remove_event={lambda (event_id: str) { remove_event(event_id); }}
+                on_remove_occurrence={lambda (event_id: str, date: str) { remove_occurrence(event_id, date); }}
+                on_remove_recurring_rule={lambda (event_id: str) { remove_event_rule(event_id); }}
                 on_back={lambda { route = ""; }}
             />
         </View>;

@@ -136,6 +136,12 @@ async def:pub delete_clothing_photo(image_path: str) {
 }
 
 
+async def:pub clear_clothing_photos {
+    if documentDirectory is None { return; }
+    await deleteAsync(documentDirectory + "images/", {"idempotent": True});
+}
+
+
 async def:pub read_clothing_image_data(image_path: str) -> str {
     if not image_path or image_path.startswith("http") or image_path.startswith("data:") {
         return image_path;

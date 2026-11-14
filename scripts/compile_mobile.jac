@@ -67,6 +67,18 @@ with entry {
             "TYYLI_EXPO_OWNER", "tyyli-apps-team"
         );
 
+        # App Store icons must be an opaque 1024x1024 square; iOS applies
+        # the rounded mask itself. The source lives in the repo, so copy it
+        # into the generated Expo project on every compile.
+        icon_source = project_dir / "assets" / "app-icon.png";
+        if icon_source.exists() {
+            (rn_dir / "assets").mkdir(parents=True, exist_ok=True);
+            (rn_dir / "assets" / "icon.png").write_bytes(
+                icon_source.read_bytes()
+            );
+            expo["icon"] = "./assets/icon.png";
+        }
+
         ios = expo.get("ios", {});
         ios["supportsTablet"] = False;
         ios["bundleIdentifier"] = os.environ.get(
@@ -94,6 +106,42 @@ with entry {
                 plugins.append(plugin_name);
             }
         }
+        # Permission copy belongs here rather than in the generated app.json,
+        # which Jac may recreate. Keep only the foreground capabilities Tyyli
+        # actually uses and remove permissions added by plugin defaults.
+        managed_permission_plugins = ["expo-image-picker", "expo-location"];
+        plugins = [
+            plugin for plugin in plugins
+            if not (
+                plugin in managed_permission_plugins or
+                (
+                    isinstance(plugin, list) and plugin and
+                    plugin[0] in managed_permission_plugins
+                )
+            )
+        ];
+        plugins.append([
+            "expo-image-picker",
+            {
+                "photosPermission": "Tyyli uses your photo library so you can add clothing images to your digital closet.",
+                "cameraPermission": "Tyyli uses the camera to photograph clothing and add it to your digital closet.",
+                "microphonePermission": False
+            }
+        ]);
+        plugins.append([
+            "expo-location",
+            {
+                "locationWhenInUsePermission": "Tyyli uses your current location to get local weather and recommend weather-appropriate outfits.",
+                "locationAlwaysAndWhenInUsePermission": False,
+                "locationAlwaysPermission": False,
+                "motionUsagePermission": False,
+                "locationFullAccuracyPermission": False,
+                "isIosBackgroundLocationEnabled": False,
+                "isAndroidBackgroundLocationEnabled": False,
+                "isAndroidForegroundServiceEnabled": False,
+                "isAndroidMotionActivityEnabled": False
+            }
+        ]);
         expo["plugins"] = plugins;
 
         extra = expo.get("extra", {});

@@ -116,12 +116,17 @@ def:pub ProfileScreen(
             </Pressable>
         </View>
 
-        {(<View style={ui.card}>
-            <Text style={ui.label}>DEVELOPER</Text>
-            <Pressable style={[ui.button, ui.buttonDanger]} onPress={lambda { on_reset(); }}>
-                <Text style={ui.buttonText}>Reset app data (back to onboarding)</Text>
+        {(<View style={[ui.card, {"gap": 12}]}>
+            <Text style={ui.heading}>Reset data</Text>
+            <Text style={ui.muted}>This permanently deletes your profile, closet items and photos, schedules, outfit picks, and history from this device.</Text>
+            <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Reset all app data"
+                style={[ui.button, ui.buttonDanger]}
+                onPress={lambda { on_reset(); }}
+            >
+                <Text style={ui.buttonText}>Reset all data</Text>
             </Pressable>
-            <Text style={ui.muted}>Reset deletes the style profile and every closet item on this device.</Text>
         </View>) if on_reset else None}
 
     </ScrollView>;

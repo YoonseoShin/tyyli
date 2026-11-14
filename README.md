@@ -80,7 +80,7 @@ mobile bundle.
 1. Claude creates one versatile `all_day` outfit that works across the full
    day.
 2. Claude also creates one focused outfit for each major calendar event. If
-   there are no major events, only the all-day outfit is requested.
+   no plan is marked for a separate outfit, only the all-day outfit is requested.
 3. Each look must use exact IDs from the user's closet and contain either a
    Dress, or both a Top and Bottom. Outerwear is added when the weather needs
    it, and Shoes are included when available.

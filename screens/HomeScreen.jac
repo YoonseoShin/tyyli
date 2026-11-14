@@ -2,8 +2,10 @@
 import from "@jac/mobui" { Pressable, ScrollView, Text, TextInput, View }
 import from ..components.AppIcon { AppIcon }
 import from ..components.Button { Button }
+import from ..components.FormalityScale { FormalityScale }
 import from ..components.OutfitCard { items_for }
 import from ..components.OutfitCollage { OutfitCollage }
+import from ..components.Tag { ChoiceChip }
 import from ..models { CalendarEvent, Outfit, WeatherInfo }
 import from ..services.calendar_service { formality_label }
 import from ..services.dates { date_key }
@@ -101,13 +103,13 @@ def:pub HomeScreen(
         plan_title: str = "",
         plan_time: str = "",
         plan_formality: int = 2,
-        plan_major: bool = True;
+        plan_extra_outfit: bool = True;
 
     def add_plan {
         title = plan_title.strip();
         if not title { return; }
         if on_add_event {
-            on_add_event(title, date_key(0), plan_time.strip(), "other", plan_formality, "one_time", plan_major);
+            on_add_event(title, date_key(0), plan_time.strip(), "other", plan_formality, "one_time", plan_extra_outfit);
             plan_title = "";
             plan_time = "";
             return;
@@ -119,7 +121,7 @@ def:pub HomeScreen(
             start_time=plan_time.strip(),
             kind="other",
             formality=plan_formality,
-            is_major=plan_major
+            is_major=plan_extra_outfit
         )]);
         plan_title = "";
         plan_time = "";
@@ -172,7 +174,7 @@ def:pub HomeScreen(
                             <View style={{"width": 7, "height": 7, "borderRadius": 999, "backgroundColor": DOT_COLORS[n % len(DOT_COLORS)]}}/>
                             <View style={ui.flex1}>
                                 <Text style={ui.bodyBold} numberOfLines={1}>{e.title}</Text>
-                                <Text style={ui.small}>{formality_label(e.formality).lower() + (" · major" if e.is_major else "")}</Text>
+                                <Text style={ui.small}>{formality_label(e.formality).lower() + (" · separate outfit" if e.is_major else "")}</Text>
                             </View>
                         </View>
                         <Text style={ui.small}>{clock_label(e.start_time)}</Text>
@@ -184,50 +186,43 @@ def:pub HomeScreen(
                 ]}
             </View>
             {(
-                <View style={[ui.card, {"gap": 12}]}>
-                    <Text style={ui.heading}>Add a test plan</Text>
-                    <TextInput
-                        style={ui.input}
-                        value={plan_title}
-                        placeholder="Plan name, e.g. Job interview"
-                        placeholderTextColor={C.muted}
-                        onChangeText={lambda (value: str) { plan_title = value; }}
-                    />
-                    <TextInput
-                        style={ui.input}
-                        value={plan_time}
-                        placeholder="Time, e.g. 14:30"
-                        placeholderTextColor={C.muted}
-                        keyboardType="numbers-and-punctuation"
-                        onChangeText={lambda (value: str) { plan_time = value; }}
-                    />
+                <View style={[ui.card, {"gap": 16}]}>
+                    <Text style={ui.heading}>Add a plan</Text>
                     <View style={{"gap": 7}}>
-                        <Text style={ui.label}>FORMALITY</Text>
-                        <View style={ui.wrap}>
-                            {[
-                                <Pressable key={str(level)} style={[ui.chip, ui.chipOn if plan_formality == level else None]} onPress={lambda { plan_formality = level; }}>
-                                    <Text style={[ui.chipText, ui.chipTextOn if plan_formality == level else None]}>{str(level)}</Text>
-                                </Pressable>
-                                for level in range(1, 6)
-                            ]}
-                        </View>
-                        <Text style={ui.small}>{formality_label(plan_formality)}</Text>
+                        <Text style={ui.label}>PLAN NAME</Text>
+                        <TextInput
+                            style={ui.input}
+                            value={plan_title}
+                            placeholder="e.g. Job interview"
+                            placeholderTextColor={C.muted}
+                            onChangeText={lambda (value: str) { plan_title = value; }}
+                        />
                     </View>
                     <View style={{"gap": 7}}>
-                        <Text style={ui.label}>OUTFIT RECOMMENDATION</Text>
+                        <Text style={ui.label}>START TIME</Text>
+                        <TextInput
+                            style={ui.input}
+                            value={plan_time}
+                            placeholder="e.g. 14:30"
+                            placeholderTextColor={C.muted}
+                            keyboardType="numbers-and-punctuation"
+                            onChangeText={lambda (value: str) { plan_time = value; }}
+                        />
+                    </View>
+                    <View style={{"gap": 10, "padding": 12, "borderRadius": 16, "backgroundColor": C.champagne, "borderWidth": 1, "borderColor": C.divider}}>
+                        <FormalityScale value={plan_formality} on_change={lambda (level: int) { plan_formality = level; }}/>
+                    </View>
+                    <View style={{"gap": 10, "padding": 12, "borderRadius": 16, "backgroundColor": C.champagne, "borderWidth": 1, "borderColor": C.divider}}>
+                        <Text style={ui.label}>ADDITIONAL OUTFIT</Text>
+                        <Text style={ui.bodyBold}>Would you like an additional outfit recommendation just for this plan?</Text>
                         <View style={ui.wrap}>
-                            <Pressable style={[ui.chip, ui.chipOn if plan_major else None]} onPress={lambda { plan_major = True; }}>
-                                <Text style={[ui.chipText, ui.chipTextOn if plan_major else None]}>Major event</Text>
-                            </Pressable>
-                            <Pressable style={[ui.chip, ui.chipOn if not plan_major else None]} onPress={lambda { plan_major = False; }}>
-                                <Text style={[ui.chipText, ui.chipTextOn if not plan_major else None]}>Regular plan</Text>
-                            </Pressable>
+                            <ChoiceChip label="Yes" selected={plan_extra_outfit} on_press={lambda { plan_extra_outfit = True; }}/>
+                            <ChoiceChip label="No" selected={not plan_extra_outfit} on_press={lambda { plan_extra_outfit = False; }}/>
                         </View>
-                        <Text style={ui.small}>Major events receive their own outfit in addition to the all-day look.</Text>
                     </View>
                     <Button label="Add plan" disabled={not plan_title.strip()} on_press={lambda { add_plan(); }}/>
-                    <Button label="Open calendar planner" kind="ghost" on_press={lambda { on_navigate("calendar"); }}/>
-                    <Text style={ui.small}>Regenerate Outfit Picks when you want the AI to use your updated schedule.</Text>
+                    <View style={ui.divider}/>
+                    <Button label="Open calendar planner" kind="outline" icon="calendar-month-outline" on_press={lambda { on_navigate("calendar"); }}/>
                 </View>
             ) if editing_schedule else None}
         </View>

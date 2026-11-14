@@ -23,6 +23,6 @@ def:pub WeatherCard(weather: WeatherInfo | None, unit: str = "F", on_toggle_unit
         </View>
         <Text style={ui.heading}>{describe_weather(weather, unit)}</Text>
         {(<Text style={ui.muted}>{weather.city + " · " + str(weather.precipitation_chance) + "% chance of rain"}</Text>) if weather is not None else None}
-        {(<Text style={ui.muted}>Sample data. Weather API not connected yet.</Text>) if weather is not None and weather.is_placeholder else None}
+        {(<Text style={ui.muted}>Weather is currently unavailable.</Text>) if weather is not None and weather.is_placeholder else None}
     </View>;
 }

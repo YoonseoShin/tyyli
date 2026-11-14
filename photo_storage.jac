@@ -65,6 +65,12 @@ async def:pub delete_clothing_photo(image_path: str) {
 }
 
 
+async def:pub clear_clothing_photos {
+    # Browser photos are data URLs inside the payload cleared by clear_local_data.
+    return;
+}
+
+
 async def:pub read_clothing_image_data(image_path: str) -> str {
     # Web stores photos as data URLs (or remote URLs), which the AI can read directly.
     return image_path;

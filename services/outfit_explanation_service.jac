@@ -3,6 +3,7 @@ import from ..models { CalendarEvent, Outfit, OutfitExplanation, WeatherInfo }
 import from ..outfit_ai { explain_outfit_recommendations }
 import from ..storage { ClothingItem, StyleProfile }
 import from .app_integrity { get_feature_authorization }
+import from .calendar_service { formality_label }
 import from .weather_service { describe_weather }
 
 
@@ -41,7 +42,7 @@ async def:pub request_outfit_explanations(
     lines: list[str] = [
         "Weather: " + describe_weather(weather, unit),
         "Chance of precipitation: " + (str(weather.precipitation_chance) + "%" if weather is not None else "unknown"),
-        "Today's plans: " + ("; ".join([event.title + " (" + event.kind + ", formality " + str(event.formality) + "/5)" for event in events]) if events else "open calendar")
+        "Today's plans: " + ("; ".join([event.title + " (" + event.kind + ", " + formality_label(event.formality) + ")" for event in events]) if events else "none")
     ];
     if profile is not None {
         lines.append(

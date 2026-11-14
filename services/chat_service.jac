@@ -5,6 +5,7 @@ import from ..storage { ClothingItem, StyleProfile }
 import from ..stylist_ai { StylistReply, StylistTurn, chat_with_stylist }
 import from .dates { date_key, day_label }
 import from .app_integrity { get_feature_authorization }
+import from .calendar_service { formality_label }
 import from .weather_service { describe_weather }
 
 
@@ -64,7 +65,7 @@ def:pub build_stylist_context(
         lines.append("Upcoming plans:");
         for e in events {
             lines.append("- " + e.date + (" " + e.start_time if e.start_time else "") + ": " + e.title
-                + " (" + e.kind + ", formality " + str(e.formality) + "/5)");
+                + " (" + e.kind + ", " + formality_label(e.formality) + ")");
         }
     }
     analyzed = [c for c in clothes if c.category != "Uncategorized"];

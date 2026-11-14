@@ -104,3 +104,8 @@ async def:pub save_daily_outfit_picks(date: str, variation: int, outfits: list[O
     };
     await AsyncStorage.setItem(OUTFIT_PICKS_KEY, JSON.stringify(payload));
 }
+
+
+async def:pub clear_daily_outfit_picks {
+    await AsyncStorage.removeItem(OUTFIT_PICKS_KEY);
+}

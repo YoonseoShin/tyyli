@@ -1,8 +1,8 @@
 """App-level data types shared by screens and services.
 
-Clothing items and the style profile live in `storage.jac` because they are
-persisted on the device. The types here are produced by services (weather,
-calendar, outfit recommendation, chat) and are not persisted yet.
+Clothing items and the style profile live in `storage.jac`. Calendar events
+are also persisted locally by `calendar_service.jac`; the remaining types are
+produced by weather, recommendation, and chat services.
 """
 
 
@@ -24,7 +24,9 @@ obj:pub CalendarEvent {
         start_time: str = "",
         kind: str = "other",
         formality: int = 2,
-        is_major: bool = True;
+        is_major: bool = True,
+        recurrence: str = "one_time",
+        excluded_dates: list[str] = [];
 }
 
 

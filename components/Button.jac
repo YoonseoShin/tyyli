@@ -4,8 +4,9 @@ import from .AppIcon { AppIcon }
 import from ..ui.kit { C, ui }
 
 
-# kind: "primary" (espresso), "secondary" (glass with a white edge), or
-#       "danger" (red). "ghost" is the older name for "secondary".
+# kind: "primary" (espresso), "secondary" (glass with a white edge),
+#       "outline" (glass with a tan edge), or "danger" (red).
+#       "ghost" is the older name for "secondary".
 # grow: stretch to fill its row (False for a button next to a text input).
 # icon: optional leading icon name (MaterialCommunityIcons), e.g. "check".
 # icon_color: overrides the icon's color (e.g. C.success for a confirmed state).
@@ -20,7 +21,8 @@ def:pub Button(
     icon_color: str = ""
 ) -> JsxElement {
     has pressed: bool = False;
-    secondary = kind == "secondary" or kind == "ghost";
+    outline = kind == "outline";
+    secondary = kind == "secondary" or kind == "ghost" or outline;
     danger = kind == "danger";
     text_color = C.primary if secondary else C.cta_text;
     default_icon_color = text_color if secondary or danger else C.accent;
@@ -31,6 +33,7 @@ def:pub Button(
         style={[
             ui.button,
             ui.buttonGhost if secondary else None,
+            {"borderColor": C.accent, "borderWidth": 1} if outline else None,
             ui.buttonDanger if danger else None,
             ui.flex1 if grow else None,
             {"opacity": 0.45 if disabled else (0.75 if pressed else 1.0)}

@@ -11,6 +11,11 @@ import from .dates { date_key }
 glob TEST_EVENTS_KEY: str = "@tyyli/test-calendar-events/v1";
 
 
+def _string_list(value: any) -> list[str] {
+    return [str(item) for item in value if item] if isinstance(value, list) else [];
+}
+
+
 def _event_from_json(raw: dict[str, any]) -> CalendarEvent {
     return CalendarEvent(
         event_id=str(raw.get("event_id") or "event-" + str(Date.now())),
@@ -19,7 +24,9 @@ def _event_from_json(raw: dict[str, any]) -> CalendarEvent {
         start_time=str(raw.get("start_time") or ""),
         kind=str(raw.get("kind") or "other"),
         formality=max(1, min(5, int(raw.get("formality") or 2))),
-        is_major=bool(raw.get("is_major")) if raw.get("is_major") is not None else True
+        is_major=bool(raw.get("is_major")) if raw.get("is_major") is not None else True,
+        recurrence=str(raw.get("recurrence") or "one_time"),
+        excluded_dates=_string_list(raw.get("excluded_dates"))
     );
 }
 
@@ -32,7 +39,9 @@ def _event_to_json(event: CalendarEvent) -> dict[str, any] {
         "start_time": event.start_time,
         "kind": event.kind,
         "formality": event.formality,
-        "is_major": event.is_major
+        "is_major": event.is_major,
+        "recurrence": event.recurrence,
+        "excluded_dates": event.excluded_dates or []
     };
 }
 
@@ -53,6 +62,11 @@ async def:pub get_week_events -> list[CalendarEvent] {
 
 async def:pub save_week_events(events: list[CalendarEvent]) {
     await AsyncStorage.setItem(TEST_EVENTS_KEY, JSON.stringify([_event_to_json(event) for event in events]));
+}
+
+
+async def:pub clear_week_events {
+    await AsyncStorage.removeItem(TEST_EVENTS_KEY);
 }
 
 
@@ -97,15 +111,6 @@ def _valid_date_key(value: str) -> bool {
 }
 
 
-def _date_after(base: str, offset: int) -> str {
-    start = new(Date, base + "T00:00:00");
-    day = new(Date, start.getTime() + offset * 86400000);
-    month = str(day.getMonth() + 1);
-    date = str(day.getDate());
-    return str(day.getFullYear()) + "-" + ("0" + month if len(month) == 1 else month) + "-" + ("0" + date if len(date) == 1 else date);
-}
-
-
 def _positive_int(value: str, fallback: int) -> int {
     try {
         parsed = int(value);
@@ -132,83 +137,59 @@ def _parse_weekdays(value: str) -> list[int] {
 }
 
 
-def _custom_recurrence_dates(start: str, recurrence: str) -> list[str] {
-    interval_weeks: int = 1;
-    count: int = 12;
-    weekdays: list[int] = [int(new(Date, start + "T00:00:00").getDay())];
-
+def _recurrence_value(recurrence: str, wanted: str) -> str {
     for part in recurrence.split("|")[1:] {
         if "=" not in part { continue; }
-        key = part.split("=")[0].strip();
-        value = part.split("=")[1].strip();
-        if key == "interval" {
-            interval_weeks = _positive_int(value, 1);
-        }
-        if key == "count" {
-            count = max(1, min(365, _positive_int(value, 12)));
-        }
-        if key == "weekdays" {
-            parsed = _parse_weekdays(value);
-            if parsed { weekdays = parsed; }
+        pieces = part.split("=");
+        if pieces[0].strip() == wanted {
+            return pieces[1].strip();
         }
     }
-
-    planned: list[str] = [];
-    max_days = max(60, count * 14);
-    for offset in range(max_days) {
-        day = _date_after(start, offset);
-        weekday = int(new(Date, day + "T00:00:00").getDay());
-        week_index = int(offset / 7);
-        if weekday in weekdays and week_index % interval_weeks == 0 {
-            planned.append(day);
-            if len(planned) >= count {
-                break;
-            }
-        }
-    }
-    return planned;
+    return "";
 }
 
 
-def _custom_day_interval_dates(start: str, recurrence: str) -> list[str] {
-    interval_days: int = 2;
-    count: int = 20;
-
-    for part in recurrence.split("|")[1:] {
-        if "=" not in part { continue; }
-        key = part.split("=")[0].strip();
-        value = part.split("=")[1].strip();
-        if key == "interval_days" {
-            interval_days = _positive_int(value, 2);
-        }
-        if key == "count" {
-            count = max(1, min(365, _positive_int(value, 20)));
-        }
-    }
-
-    return [_date_after(start, n * interval_days) for n in range(count)];
+def _days_between(start: str, target: str) -> int {
+    start_parts = [int(value) for value in start.split("-")];
+    target_parts = [int(value) for value in target.split("-")];
+    start_utc = Date.UTC(start_parts[0], start_parts[1] - 1, start_parts[2]);
+    target_utc = Date.UTC(target_parts[0], target_parts[1] - 1, target_parts[2]);
+    return int((target_utc - start_utc) / 86400000);
 }
 
 
-def _dates_for_recurrence(date: str, recurrence: str) -> list[str] {
-    start = date if _valid_date_key(date) else date_key(0);
-    if recurrence == "one_time" {
-        return [start];
-    }
+def _occurs_on(event: CalendarEvent, target: str) -> bool {
+    if not _valid_date_key(target) or target < event.date or target in (event.excluded_dates or []) { return False; }
+    recurrence = event.recurrence or "one_time";
+    if recurrence == "one_time" { return event.date == target; }
+    if recurrence == "daily" { return True; }
+    weekday = int(new(Date, target + "T00:00:00").getDay());
+    if recurrence == "weekdays" { return weekday not in [0, 6]; }
     if recurrence.startswith("custom|") {
-        return _custom_recurrence_dates(start, recurrence);
+        weekdays = _parse_weekdays(_recurrence_value(recurrence, "weekdays"));
+        interval_weeks = _positive_int(_recurrence_value(recurrence, "interval"), 1);
+        return weekday in weekdays and int(_days_between(event.date, target) / 7) % interval_weeks == 0;
     }
     if recurrence.startswith("custom_days|") {
-        return _custom_day_interval_dates(start, recurrence);
+        interval_days = _positive_int(_recurrence_value(recurrence, "interval_days"), 1);
+        return _days_between(event.date, target) % interval_days == 0;
     }
-    upcoming = [_date_after(start, offset) for offset in range(28)];
-    if recurrence == "daily" {
-        return upcoming;
-    }
-    if recurrence == "weekdays" {
-        return [d for d in upcoming if int(new(Date, d + "T00:00:00").getDay()) not in [0, 6]];
-    }
-    return upcoming;
+    return event.date == target;
+}
+
+
+def _event_for_date(event: CalendarEvent, target: str) -> CalendarEvent {
+    return CalendarEvent(
+        event_id=event.event_id,
+        title=event.title,
+        date=target,
+        start_time=event.start_time,
+        kind=event.kind,
+        formality=event.formality,
+        is_major=event.is_major,
+        recurrence=event.recurrence,
+        excluded_dates=event.excluded_dates or []
+    );
 }
 
 
@@ -225,21 +206,19 @@ def:pub add_manual_events(
     clean_title = title.strip() if title.strip() else "Event";
     clean_kind = kind.strip() if kind.strip() else "other";
     clean_formality = max(1, min(5, formality));
-    planned_dates = _dates_for_recurrence(date, recurrence);
-    seed = "manual-" + str(Date.now());
-    created = [
-        CalendarEvent(
-            event_id=seed + "-" + str(n),
-            title=clean_title,
-            date=day,
-            start_time=_normalized_time(start_time),
-            kind=clean_kind,
-            formality=clean_formality,
-            is_major=is_major
-        )
-        for (n, day) in enumerate(planned_dates)
-    ];
-    return existing + created;
+    start = date if _valid_date_key(date) else date_key(0);
+    created = CalendarEvent(
+        event_id="manual-" + str(Date.now()),
+        title=clean_title,
+        date=start,
+        start_time=_normalized_time(start_time),
+        kind=clean_kind,
+        formality=clean_formality,
+        is_major=is_major,
+        recurrence=recurrence or "one_time",
+        excluded_dates=[]
+    );
+    return existing + [created];
 }
 
 
@@ -267,7 +246,58 @@ def:pub add_quick_events(
 
 
 def:pub events_on(events: list[CalendarEvent], date: str) -> list[CalendarEvent] {
-    return [e for e in events if e.date == date];
+    return [_event_for_date(event, date) for event in events if _occurs_on(event, date)];
+}
+
+
+def:pub is_recurring(event: CalendarEvent) -> bool {
+    return bool(event.recurrence and event.recurrence != "one_time");
+}
+
+
+def _weekday_name(day: int) -> str {
+    return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][day];
+}
+
+
+def _natural_list(values: list[str]) -> str {
+    if len(values) == 1 { return values[0]; }
+    if len(values) == 2 { return values[0] + " and " + values[1]; }
+    return ", ".join(values[:-1]) + ", and " + values[-1];
+}
+
+
+def:pub recurrence_label(event: CalendarEvent) -> str {
+    recurrence = event.recurrence or "one_time";
+    if recurrence == "daily" { return "Every day"; }
+    if recurrence == "weekdays" { return "Every weekday"; }
+    if recurrence.startswith("custom|") {
+        picked = _parse_weekdays(_recurrence_value(recurrence, "weekdays"));
+        names = [_weekday_name(day) for day in [1, 2, 3, 4, 5, 6, 0] if day in picked];
+        return "Every " + _natural_list(names) if names else "Recurring";
+    }
+    if recurrence.startswith("custom_days|") {
+        interval = _positive_int(_recurrence_value(recurrence, "interval_days"), 1);
+        return "Every day" if interval == 1 else "Every " + str(interval) + " days";
+    }
+    return "Does not repeat";
+}
+
+
+def:pub remove_event_occurrence(events: list[CalendarEvent], event_id: str, date: str) -> list[CalendarEvent] {
+    updated: list[CalendarEvent] = [];
+    for event in events {
+        if event.event_id != event_id {
+            updated.append(event);
+        } elif is_recurring(event) {
+            excluded = event.excluded_dates or [];
+            if date not in excluded {
+                event.excluded_dates = excluded + [date];
+            }
+            updated.append(event);
+        }
+    }
+    return updated;
 }
 
 

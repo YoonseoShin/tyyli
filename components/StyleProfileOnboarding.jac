@@ -23,9 +23,10 @@ glob options: dict[str, list[str]] = {
     "body_shapes": ["Hourglass", "Pear", "Apple", "Rectangle", "Inverted triangle"],
     "stores": ["Aritzia", "Zara", "H&M", "Uniqlo", "Gap", "Banana Republic", "Abercrombie", "American Eagle", "Urban Outfitters", "Nordstrom", "Madewell", "J.Crew", "Everlane", "Lululemon", "Brandy Melville", "Garage", "Free People", "Amazon", "Thrift / vintage"],
     "brands": ["Nike", "Adidas", "New Balance", "Levi's", "Polo Ralph Lauren", "Carhartt", "The North Face", "Patagonia", "Arc'teryx", "Alo", "Skims", "Reformation", "COS", "Ganni", "Sézane", "Alex Mill", "Dr. Martens", "Birkenstock", "UGG"],
-    "occasions": ["School", "Work", "Casual everyday", "Going out", "Dates", "Formal events", "Gym"],
-    "mbti": ["ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP", "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"],
-    "zodiac": ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
+    "occasions": ["School", "Work", "Casual everyday", "Going out", "Dates", "Formal events", "Gym"]
+    # MBTI and zodiac are intentionally hidden from onboarding for now.
+    # "mbti": ["ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP", "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"],
+    # "zodiac": ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
 };
 glob SHAPE_HINTS: dict[str, str] = {
     "Hourglass": "Shoulders and hips about equal, with a clearly narrower waist.",
@@ -40,11 +41,14 @@ glob SPLASH: int = 0,
      HOW: int = 1,
      INTRO: int = 2,
      FIRST: int = 3,
-     GENERATING: int = 13,
-     RESULT: int = 14,
-     DESCRIBE: int = 15,
-     WELCOME: int = 16;
-glob QUESTIONS: list[str] = ["styles", "colors", "occasions", "fit", "shape", "stores", "brands", "inspiration", "mbti", "zodiac"],
+     GENERATING: int = 11,
+     RESULT: int = 12,
+     DESCRIBE: int = 13,
+     WELCOME: int = 14;
+glob QUESTIONS: list[str] = [
+        "styles", "colors", "occasions", "fit", "shape", "stores", "brands", "inspiration"
+        # "mbti", "zodiac"
+     ],
      REQUIRED: list[str] = ["styles", "colors", "occasions"];
 glob TITLES: dict[str, str] = {
     "styles": "What styles best describe you?",
@@ -54,9 +58,9 @@ glob TITLES: dict[str, str] = {
     "shape": "Your shape, your way.",
     "stores": "Where do you love to shop?",
     "brands": "Brands you keep coming back to?",
-    "inspiration": "Whose style inspires you?",
-    "mbti": "What is your MBTI?",
-    "zodiac": "What is your zodiac sign?"
+    "inspiration": "Whose style inspires you?"
+    # "mbti": "What is your MBTI?",
+    # "zodiac": "What is your zodiac sign?"
 };
 glob HINTS: dict[str, str] = {
     "styles": "Choose all that feel like you.",
@@ -66,9 +70,9 @@ glob HINTS: dict[str, str] = {
     "shape": "Two measurements and a shape make shopping suggestions much more accurate. You can skip anything you do not want to share.",
     "stores": "Pick your go-to stores, or add your own.",
     "brands": "Pick the labels you wear most, or add your own.",
-    "inspiration": "A celebrity, creator, or anyone whose looks you love.",
-    "mbti": "Just for fun. Your style choices matter most.",
-    "zodiac": "Just for fun. Your style choices matter most."
+    "inspiration": "A celebrity, creator, or anyone whose looks you love."
+    # "mbti": "Just for fun. Your style choices matter most.",
+    # "zodiac": "Just for fun. Your style choices matter most."
 };
 
 
@@ -498,8 +502,9 @@ def:pub StyleProfileOnboarding(
                     <Text style={styles.label}>NAME SOMEONE YOU ADMIRE</Text>
                     <TextInput style={styles.input} value={inspiration} placeholder="e.g. Zendaya, Emma Chamberlain" placeholderTextColor={C["copySoft"]} onChangeText={lambda (t: str) { inspiration = t; }}/>
                 </View>}
-                {key == "mbti" and <View style={styles.optionColumns}>{[<OptionPill key={x} label={x} active={mbti == x} half={True} spaced={True} on_press={lambda { mbti = "" if mbti == x else x; }}/> for x in options["mbti"]]}</View>}
-                {key == "zodiac" and <View style={styles.optionColumns}>{[<OptionPill key={x} label={x} active={zodiac == x} half={True} on_press={lambda { zodiac = "" if zodiac == x else x; }}/> for x in options["zodiac"]]}</View>}
+                # MBTI and zodiac question views are intentionally hidden.
+                # {key == "mbti" and <View style={styles.optionColumns}>{[<OptionPill key={x} label={x} active={mbti == x} half={True} spaced={True} on_press={lambda { mbti = "" if mbti == x else x; }}/> for x in options["mbti"]]}</View>}
+                # {key == "zodiac" and <View style={styles.optionColumns}>{[<OptionPill key={x} label={x} active={zodiac == x} half={True} on_press={lambda { zodiac = "" if zodiac == x else x; }}/> for x in options["zodiac"]]}</View>}
 
                 <View style={styles.spacer}/>
                 <View style={styles.footer}>

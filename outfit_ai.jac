@@ -99,8 +99,8 @@ def:pub recommend_outfits(context: str, device_id: str = "") -> list[dict[str, a
     }
     prompt = (
         "You are the decision-making personal stylist for a mobile app. Follow the supplied Required "
-        "recommendations exactly: create one all_day outfit and one event outfit for every supplied major "
-        "event. When there are no events, create only the all_day outfit. For all_day, set target_type to "
+        "recommendations exactly: create one all_day outfit and one event outfit for every supplied plan marked for a separate outfit. "
+        "When no plan requests a separate outfit, create only the all_day outfit. For all_day, set target_type to "
         "all_day and event_id to an empty string. For an event outfit, set target_type to event and copy its "
         "exact event_id. Select complete, distinct outfits using only exact clothing_item_id values in the "
         "supplied closet. You—not "
@@ -121,6 +121,8 @@ def:pub recommend_outfits(context: str, device_id: str = "") -> list[dict[str, a
         "Write the styling copy as a concise personal stylist: specific, confident and warm. Name actual pieces "
         "the way the closet lists them. No filler such as 'This outfit is perfect for', no exclamation marks, "
         "and never mention AI. Use only supplied facts; never invent a material, fit, feature or plan. "
+        "Never expose internal numeric ratings such as '3/5' in any user-facing copy. Translate dress codes and warmth into natural language. "
+        "Refer to plans by their titles; do not call them major or regular events. "
         "style_name: two or three words naming the look. "
         "headline: the stylist's one-line take on the look, at most 8 words, no final period. "
         "summary: one or two sentences, at most 32 words in total, naming the key pieces and the main reason "
@@ -233,7 +235,8 @@ def:pub explain_outfit_recommendations(context: str, device_id: str = "") -> lis
         "schedule; personal must connect saved style, color, occasion, and body-shape preferences to the "
         "choice. Use only supplied facts. Never promise an exact garment fit or invent materials, body "
         "details, or clothing features. Keep every field under 28 words and write polished English for "
-        "a scannable app UI.\n\n"
+        "a scannable app UI. Never expose internal numeric ratings such as '3/5'; translate them into natural language. "
+        "Refer to plans by title rather than calling them major or regular events.\n\n"
         + context
     );
     model = _dev_setting("CLAUDE_MODEL", "claude-opus-5-5");

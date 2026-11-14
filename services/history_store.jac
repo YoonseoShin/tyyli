@@ -77,3 +77,8 @@ async def:pub delete_history_entry(entry_id: str) -> list[HistoryEntry] {
     await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify([_entry_to_json(e) for e in updated]));
     return updated;
 }
+
+
+async def:pub clear_history {
+    await AsyncStorage.removeItem(HISTORY_KEY);
+}

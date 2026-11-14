@@ -181,7 +181,7 @@ async def:pub request_ai_outfit_recommendations(
         + " | title: " + event.title
         + " | time: " + (event.start_time or "unspecified")
         + " | kind: " + event.kind
-        + " | formality: " + str(event.formality) + "/5"
+        + " | dress code: " + formality_label(event.formality)
         for event in today_events
     ];
     major_event_lines = [
@@ -190,9 +190,9 @@ async def:pub request_ai_outfit_recommendations(
     ];
     required = (
         "Return exactly one all_day outfit and exactly one event outfit for each of the "
-        + str(len(major_events)) + " major events below."
+        + str(len(major_events)) + " plans marked for a separate outfit below."
         if major_events else
-        "Return exactly one all_day outfit. There are no major events, so do not return any event outfit."
+        "Return exactly one all_day outfit. No plan requests a separate outfit, so do not return an event outfit."
     );
     lines: list[str] = [
         "Recommendation batch: " + str(variation) + ". Use this number as a variation cue so Regenerate produces new strong combinations.",
@@ -200,7 +200,7 @@ async def:pub request_ai_outfit_recommendations(
         "Weather: " + describe_weather(weather, unit),
         "Chance of precipitation: " + (str(weather.precipitation_chance) + "%" if weather is not None else "unknown"),
         "Today's full schedule for the all_day outfit:\n" + ("\n".join(schedule_lines) if schedule_lines else "none"),
-        "Major events requiring their own event outfit:\n" + ("\n".join(major_event_lines) if major_event_lines else "none"),
+        "Plans requesting their own event outfit:\n" + ("\n".join(major_event_lines) if major_event_lines else "none"),
         "Recently worn during the previous 7 days:\n" + ("\n".join(recent_lines) if recent_lines else "none"),
         _profile_line(profile),
         "Available closet items:",
