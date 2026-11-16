@@ -33,12 +33,12 @@ glob SLOTS: dict[str, dict[str, str]] = {
     LAYERS: list[str] = ["Outerwear", "Dress", "Top", "Bottom", "Bag", "Shoes", "Accessory", "Other"];
 
 
-# The garment as the user photographed it. "Find online" can replace an item's
-# photo with a shop photo of a similar product (keeping the user's own in
-# `original_image_path`); outfits always show the user's own photo, or the
-# stored photo when there was no swap. "" when the item has no photo.
+# The photo currently selected for the closet item. "Find online" can replace
+# the visible photo with a cleaner shop photo while keeping the user's original
+# in `original_image_path` for "Use my photo". Outfit boards follow that active
+# selection so the closet detail and recommendation screens stay consistent.
 def:pub garment_photo_uri(item: ClothingItem) -> str {
-    path = item.original_image_path or item.image_path;
+    path = item.image_path;
     return resolve_clothing_image_uri(path) if path else "";
 }
 
