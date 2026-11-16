@@ -207,7 +207,14 @@ async def _store_product_photo(photo_id: str, image_url: str, thumbnail_url: str
 # Swap the item's photo for a product photo found online, keeping the user's own
 # photo so `use_original_photo` can undo it.
 async def _apply_product_photo(item: ClothingItem, cand: ProductCandidate, changes: dict[str, any]) -> bool {
-    new_image_path = await _store_product_photo(item.clothing_item_id + "-product", cand.image, cand.thumbnail);
+    # Give every picked product photo a new URI. React Native caches images by
+    # URI, so overwriting one fixed `-product.jpg` file can leave the item
+    # detail screen showing the previous bitmap until it is reopened.
+    photo_id = (
+        item.clothing_item_id + "-product-" + str(Date.now()) + "-" +
+        str(Math.floor(Math.random() * 1000000))
+    );
+    new_image_path = await _store_product_photo(photo_id, cand.image, cand.thumbnail);
     if not new_image_path {
         return False;
     }
@@ -246,13 +253,20 @@ async def:pub find_online(item: ClothingItem, image_data: str = "") -> ProductLo
     }
 
     chosen = result.candidates[0];
-    if await _apply_product_photo(item, chosen, changes) {
+    previous_product_photo = item.image_path if item.original_image_path and item.image_path != item.original_image_path else "";
+    photo_replaced = await _apply_product_photo(item, chosen, changes);
+    if photo_replaced {
         changes["lookup_status"] = "matched" if result.match_type == "exact" else "similar";
     } else {
         changes["lookup_status"] = "no_match";
         changes["lookup_note"] = result.note + " (The product photo could not be downloaded.)";
     }
     await save_clothing_item(_item_with(item, changes));
+    if photo_replaced and previous_product_photo and changes.get("image_path", "") != previous_product_photo {
+        try {
+            await delete_clothing_photo(previous_product_photo);
+        } except Exception {}
+    }
     return result;
 }
 
@@ -280,11 +294,17 @@ async def:pub use_candidate(item: ClothingItem, cand: ProductCandidate) {
         "name": listing_name(cand.title, cand.source) if cand.title else item.name,
         "lookup_note": "Picked by you from the search results."
     };
+    previous_product_photo = item.image_path if item.original_image_path and item.image_path != item.original_image_path else "";
     if not await _apply_product_photo(item, cand, changes) {
         raise Exception("That product photo could not be downloaded.");
     }
     changes["lookup_status"] = "picked";
     await save_clothing_item(_item_with(item, changes));
+    if previous_product_photo and changes.get("image_path", "") != previous_product_photo {
+        try {
+            await delete_clothing_photo(previous_product_photo);
+        } except Exception {}
+    }
 }
 
 
