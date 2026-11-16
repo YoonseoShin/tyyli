@@ -30,9 +30,6 @@ def:pub profile_summary(profile: StyleProfile, notes: str = "") -> str {
     if profile.favorite_brands { lines.append("Favourite brands: " + _join(profile.favorite_brands)); }
     if profile.inspiration { lines.append("Style inspiration: " + profile.inspiration); }
     if profile.body_shape { lines.append("Body shape: " + profile.body_shape); }
-    # MBTI and zodiac are intentionally excluded from AI style identity.
-    # if profile.mbti { lines.append("MBTI: " + profile.mbti); }
-    # if profile.zodiac { lines.append("Zodiac: " + profile.zodiac); }
     return "\n".join(lines);
 }
 

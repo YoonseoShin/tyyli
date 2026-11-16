@@ -7,10 +7,10 @@ words, which re-runs the stylist with those words as the strongest signal.
 Editing an existing profile starts straight at the first question.
 """
 import from "@jac/mobui" { Image, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions }
-import from ..assets_body_shapes { BODY_SHAPE_CREDIT, BODY_SHAPE_IMAGES }
+import from ..assets_body_shape_sheet { MEN_BODY_SHAPE_SHEET, WOMEN_BODY_SHAPE_SHEET }
 import from ..services.style_identity_service { discover_style_identity, local_identity }
 import from ..storage { StyleProfile }
-import from ..theme { C, indexed, styles }
+import from ..theme { C, GRADIENT_BANDS, indexed, styles }
 import from .Dropdown { Dropdown }
 import from .OnboardingUi { Backdrop, OptionPill, PillButton, Pulse, Reveal }
 
@@ -20,20 +20,51 @@ glob options: dict[str, list[str]] = {
     "colors": ["Black", "White", "Cream", "Brown", "Grey", "Navy", "Blue", "Green", "Red", "Pink", "Yellow", "Purple"],
     "sections": ["Women's", "Men's", "Both"],
     "letter_sizes": ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL"],
-    "body_shapes": ["Hourglass", "Pear", "Apple", "Rectangle", "Inverted triangle"],
+    "body_shape_filters": ["All", "Men", "Women"],
+    "women_body_shapes": ["Hourglass", "Rectangle", "Oval", "Triangle", "Inverted triangle"],
+    "men_body_shapes": ["Trapezoid", "Rectangle", "Oval", "Triangle", "Inverted triangle"],
     "stores": ["Aritzia", "Zara", "H&M", "Uniqlo", "Gap", "Banana Republic", "Abercrombie", "American Eagle", "Urban Outfitters", "Nordstrom", "Madewell", "J.Crew", "Everlane", "Lululemon", "Brandy Melville", "Garage", "Free People", "Amazon", "Thrift / vintage"],
     "brands": ["Nike", "Adidas", "New Balance", "Levi's", "Polo Ralph Lauren", "Carhartt", "The North Face", "Patagonia", "Arc'teryx", "Alo", "Skims", "Reformation", "COS", "Ganni", "Sézane", "Alex Mill", "Dr. Martens", "Birkenstock", "UGG"],
     "occasions": ["School", "Work", "Casual everyday", "Going out", "Dates", "Formal events", "Gym"]
-    # MBTI and zodiac are intentionally hidden from onboarding for now.
-    # "mbti": ["ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP", "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"],
-    # "zodiac": ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
 };
 glob SHAPE_HINTS: dict[str, str] = {
-    "Hourglass": "Shoulders and hips about equal, with a clearly narrower waist.",
-    "Pear": "Hips wider than the shoulders; weight sits lower.",
-    "Apple": "Fuller through the middle, slimmer hips and legs.",
-    "Rectangle": "Shoulders, waist and hips roughly in line.",
-    "Inverted triangle": "Shoulders wider than the hips."
+    "Hourglass": "Shoulders and hips are about the same width, with a clearly narrower waist (often 9 in / 23 cm or more smaller than the hips).",
+    "Rectangle": "Shoulders, waist and hips are roughly in line, with little waist definition.",
+    "Oval": "Fuller through the middle, with the waist the widest point and the shoulders and hips narrower (sometimes called apple).",
+    "Triangle": "Hips and thighs are wider than the shoulders (sometimes called pear).",
+    "Inverted triangle": "Shoulders and chest are noticeably wider than the waist and hips, giving a V shape.",
+    "Trapezoid": "Shoulders and chest are a little wider than the waist, which is only slightly wider than the hips."
+};
+glob WOMEN_SHAPE_X: dict[str, float] = {
+    "Hourglass": 239.0,
+    "Rectangle": 560.0,
+    "Oval": 890.0,
+    "Triangle": 1222.0,
+    "Inverted triangle": 1552.0
+};
+# Width of each figure in sheet pixels, measured from the source images plus
+# a small margin, so wide figures (the women's Oval) are not clipped and
+# narrow ones do not show their neighbours.
+glob WOMEN_SHAPE_WIDTH: dict[str, float] = {
+    "Hourglass": 230.0,
+    "Rectangle": 280.0,
+    "Oval": 352.0,
+    "Triangle": 286.0,
+    "Inverted triangle": 212.0
+};
+glob MEN_SHAPE_WIDTH: dict[str, float] = {
+    "Trapezoid": 258.0,
+    "Rectangle": 252.0,
+    "Oval": 252.0,
+    "Triangle": 206.0,
+    "Inverted triangle": 258.0
+};
+glob MEN_SHAPE_X: dict[str, float] = {
+    "Trapezoid": 231.0,
+    "Rectangle": 560.0,
+    "Oval": 891.0,
+    "Triangle": 1219.0,
+    "Inverted triangle": 1554.0
 };
 
 # Screen order. Questions sit between FIRST and GENERATING, in QUESTIONS order.
@@ -47,7 +78,6 @@ glob SPLASH: int = 0,
      WELCOME: int = 14;
 glob QUESTIONS: list[str] = [
         "styles", "colors", "occasions", "fit", "shape", "stores", "brands", "inspiration"
-        # "mbti", "zodiac"
      ],
      REQUIRED: list[str] = ["styles", "colors", "occasions"];
 glob TITLES: dict[str, str] = {
@@ -59,8 +89,6 @@ glob TITLES: dict[str, str] = {
     "stores": "Where do you love to shop?",
     "brands": "Brands you keep coming back to?",
     "inspiration": "Whose style inspires you?"
-    # "mbti": "What is your MBTI?",
-    # "zodiac": "What is your zodiac sign?"
 };
 glob HINTS: dict[str, str] = {
     "styles": "Choose all that feel like you.",
@@ -71,8 +99,6 @@ glob HINTS: dict[str, str] = {
     "stores": "Pick your go-to stores, or add your own.",
     "brands": "Pick the labels you wear most, or add your own.",
     "inspiration": "A celebrity, creator, or anyone whose looks you love."
-    # "mbti": "Just for fun. Your style choices matter most.",
-    # "zodiac": "Just for fun. Your style choices matter most."
 };
 
 
@@ -146,9 +172,6 @@ def:pub StyleProfileOnboarding(
         selected_colors: list[str] = initial.preferred_colors if initial else [],
         selected_occasions: list[str] = initial.occasions if initial else [],
         inspiration: str = initial.inspiration if initial else "",
-        # MBTI and zodiac inputs are intentionally disabled.
-        # mbti: str = initial.mbti if initial else "",
-        # zodiac: str = initial.zodiac if initial else "",
         shop_section: str = initial.shop_section if initial else "",
         height_unit: str = _unit_of(initial.height, "ft") if initial else "ft",
         height_ft: str = _parse_feet(initial.height)[0] if initial else "",
@@ -163,6 +186,11 @@ def:pub StyleProfileOnboarding(
         waist: str = (_number_with_unit(initial.waist, "in") or _number_with_unit(initial.waist, "cm")) if initial else "",
         hips: str = (_number_with_unit(initial.hips, "in") or _number_with_unit(initial.hips, "cm")) if initial else "",
         body_shape: str = initial.body_shape if initial else "",
+        body_shape_filter: str = "All",
+        # Which set the chosen card came from, so picking the women's
+        # "Rectangle" under All does not also highlight the men's one. The
+        # saved profile keeps only the shape name.
+        body_shape_set: str = "Women" if initial and initial.body_shape == "Hourglass" else "Men" if initial and initial.body_shape == "Trapezoid" else "",
         brand_sizes: list[str] = initial.brand_sizes if initial else [],
         show_brand_sizes: bool = False,
         show_measure_guide: bool = False,
@@ -204,7 +232,6 @@ def:pub StyleProfileOnboarding(
             preferred_colors=selected_colors,
             occasions=selected_occasions,
             inspiration=inspiration,
-            # Clear legacy personality values whenever the profile is saved.
             mbti="",
             zodiac="",
             shop_section=shop_section,
@@ -328,8 +355,37 @@ def:pub StyleProfileOnboarding(
     bottom_values = options["letter_sizes"] + (_range(26, 44) if mens else _range(23, 40));
     shoe_values = _half_sizes(6, 15) if mens else _half_sizes(4, 13);
     brand_size_values = shoe_values if brand_size_kind == "Shoes" else bottom_values if brand_size_kind == "Bottom" else options["letter_sizes"];
-    # Page padding (28 each side), card padding (18 each side) and the gap between two cards.
-    card_width = (Math.min(viewport.width, 520) - 56 - 36 - 12) / 2;
+    # All lists every card from both sets: women's first, then men's.
+    shape_choices = (
+        ([("Women", s) for s in options["women_body_shapes"]] if body_shape_filter != "Men" else [])
+        + ([("Men", s) for s in options["men_body_shapes"]] if body_shape_filter != "Women" else [])
+    );
+    # Page padding (28 each side), card padding (18 each side), and two gaps.
+    card_width = (Math.min(viewport.width, 520) - 56 - 36 - 16) / 3;
+
+    # The source is one reference sheet. Each card clips the correct figure so
+    # all silhouettes stay visually consistent without duplicating image data.
+    def shape_image(shape_set: str, shape: str) -> JsxElement {
+        use_men = shape_set == "Men";
+        x = MEN_SHAPE_X[shape] if use_men else WOMEN_SHAPE_X[shape];
+        scale = 0.136;
+        image_top = -7.0;
+        crop_width = MEN_SHAPE_WIDTH[shape] if use_men else WOMEN_SHAPE_WIDTH[shape];
+        viewport_width = Math.min(card_width - 12.0, crop_width * scale);
+        return <View style={{"width": viewport_width, "height": 112, "overflow": "hidden", "alignSelf": "center"}}>
+            <Image
+                source={{"uri": MEN_BODY_SHAPE_SHEET if use_men else WOMEN_BODY_SHAPE_SHEET}}
+                style={{
+                    "position": "absolute",
+                    "width": 1774.0 * scale,
+                    "height": 887.0 * scale,
+                    "left": viewport_width / 2.0 - x * scale,
+                    "top": image_top
+                }}
+                resizeMode="stretch"
+            />
+        </View>;
+    }
 
     is_question = step >= FIRST and step < GENERATING;
     key = QUESTIONS[step - FIRST] if is_question else "";
@@ -355,217 +411,237 @@ def:pub StyleProfileOnboarding(
     result_copy = identity.description if identity else "";
     result_palette = identity.palette if identity else [];
 
-    return <View style={[styles.root, {"height": viewport.height} if Platform.OS == "web" else {}]} onLayout={lambda (e: any) { frame_height = e.nativeEvent.layout.height; }}>
-        <Backdrop width={viewport.width} height={frame_height or viewport.height} phase={step}/>
-        <ScrollView key={"scroll" + str(step)} style={styles.scroll} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={True}>
+    return <View style={{"flex": 1}}>
+        {#* The native shell (SafeAreaView) leaves the status-bar and home-indicator
+            strips white, and AppShell's safeAreaBleed is not rendered on this route.
+            They sit outside styles.root, whose overflow is hidden.
+            Paint them with the gradient's end colours; views do not clip by default. *#}
+        {(<View pointerEvents="none" style={{"position": "absolute", "top": -240, "height": 240, "left": 0, "right": 0, "backgroundColor": GRADIENT_BANDS[0]}}/>) if Platform.OS != "web" else None}
+        {(<View pointerEvents="none" style={{"position": "absolute", "bottom": -240, "height": 240, "left": 0, "right": 0, "backgroundColor": GRADIENT_BANDS[len(GRADIENT_BANDS) - 1]}}/>) if Platform.OS != "web" else None}
+        <View style={[styles.root, {"height": viewport.height} if Platform.OS == "web" else {}]} onLayout={lambda (e: any) { frame_height = e.nativeEvent.layout.height; }}>
+            <Backdrop width={viewport.width} height={frame_height or viewport.height} phase={step}/>
+            <ScrollView key={"scroll" + str(step)} style={styles.scroll} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets={True}>
 
-            <View style={styles.topbar}>
-                {(<Pressable onPress={lambda { go_back(); }} hitSlop={12}><Text style={styles.navText}>{"Cancel" if step == FIRST and initial else "←  Back"}</Text></Pressable>) if show_back else <View/>}
-                {(<Text style={styles.counter}>{str(number) + " / " + str(len(QUESTIONS))}</Text>) if is_question else <View/>}
-            </View>
-            {(<View style={styles.dots}>
-                {[<View key={q} style={[styles.dot, styles.dotDone if q in done_keys else {}, styles.dotNow if q == key else {}]}/> for q in QUESTIONS]}
-            </View>) if is_question else None}
+                <View style={styles.topbar}>
+                    {(<Pressable onPress={lambda { go_back(); }} hitSlop={12}><Text style={styles.navText}>{"Cancel" if step == FIRST and initial else "←  Back"}</Text></Pressable>) if show_back else <View/>}
+                    {(<Text style={styles.counter}>{str(number) + " / " + str(len(QUESTIONS))}</Text>) if is_question else <View/>}
+                </View>
+                {(<View style={styles.dots}>
+                    {[<View key={q} style={[styles.dot, styles.dotDone if q in done_keys else {}, styles.dotNow if q == key else {}]}/> for q in QUESTIONS]}
+                </View>) if is_question else None}
 
-            {step == SPLASH and <Reveal key="splash" grow={True}>
-                <View style={[styles.hero, {"paddingBottom": 70}]}>
-                    <Text style={styles.logo}>tyyli</Text>
-                    <Text style={styles.tagline}>your AI stylist</Text>
-                    <View style={{"height": 36}}/>
-                    <Text style={styles.lead}>Find the perfect outfit for you based on what you already have in your closet</Text>
-                </View>
-                <View style={styles.footer}>
-                    <PillButton label="Get styled" on_press={lambda { step = HOW; }}/>
-                    <Text style={styles.footnote}>About two minutes. Your profile is saved on this phone; selected answers are sent to our AI service to personalize it.</Text>
-                </View>
-            </Reveal>}
-
-            {step == HOW and <Reveal key="how" grow={True}>
-                <View style={styles.hero}>
-                    <Text style={styles.headline}>How does the algorithm work?</Text>
-                    <Text style={styles.leadSmall}>We use AI to design personalized outfits based on your quiz, the current weather, and the plans you add to the app.</Text>
-                </View>
-                <View style={styles.footer}>
-                    <PillButton label="Continue" on_press={lambda { step = INTRO; }}/>
-                </View>
-            </Reveal>}
-
-            {step == INTRO and <Reveal key="intro" grow={True}>
-                <View style={styles.hero}>
-                    <Text style={styles.lead}>First of all, what should we call you?</Text>
-                    <TextInput style={[styles.input, {"alignSelf": "stretch", "textAlign": "center"}]} value={user_name} placeholder="Your name" placeholderTextColor={C["copySoft"]} autoCapitalize="words" autoCorrect={False} onChangeText={lambda (t: str) { user_name = t; }}/>
-                    <Text style={styles.leadSmall}>Then a couple of questions to get to know your style…</Text>
-                </View>
-                <View style={styles.footer}>
-                    <PillButton label="Okay!" on_press={lambda { step = FIRST; }}/>
-                </View>
-            </Reveal>}
-
-            {is_question and <Reveal key={"q" + str(step)} grow={True}>
-                <View style={styles.questionBlock}>
-                    <View style={styles.questionRow}>
-                        <Text style={[styles.question, styles.questionIndex]}>{str(number) + "."}</Text>
-                        <Text style={[styles.question, {"flex": 1}]}>{TITLES[key]}</Text>
+                {step == SPLASH and <Reveal key="splash" grow={True}>
+                    <View style={[styles.hero, {"paddingBottom": 70}]}>
+                        <Text style={styles.logo}>tyyli</Text>
+                        <Text style={styles.tagline}>your AI stylist</Text>
+                        <View style={{"height": 36}}/>
+                        <Text style={styles.lead}>Find the perfect outfit for you based on what you already have in your closet</Text>
                     </View>
-                    <View style={styles.questionBody}>
-                        <Text style={styles.hint}>{HINTS[key]}</Text>
-                        {(<Text style={styles.optionalTag}>(Optional)</Text>) if not required else None}
+                    <View style={styles.footer}>
+                        <PillButton label="Get styled" on_press={lambda { step = HOW; }}/>
+                        <Text style={styles.footnote}>About two minutes. Your profile is saved on this phone; selected answers are sent to our AI service to personalize it.</Text>
                     </View>
-                </View>
+                </Reveal>}
 
-                <View style={styles.body}>
-                {key == "styles" and multi("styles", selected_styles, options["styles"], lambda (v: list[str]) { selected_styles = v; })}
-                {key == "colors" and multi("colors", selected_colors, options["colors"], lambda (v: list[str]) { selected_colors = v; })}
-                {key == "occasions" and multi("occasions", selected_occasions, options["occasions"], lambda (v: list[str]) { selected_occasions = v; })}
+                {step == HOW and <Reveal key="how" grow={True}>
+                    <View style={styles.hero}>
+                        <Text style={styles.headline}>How does the algorithm work?</Text>
+                        <Text style={styles.leadSmall}>We use AI to design personalized outfits based on your quiz, the current weather, and the plans you add to the app.</Text>
+                    </View>
+                    <View style={styles.footer}>
+                        <PillButton label="Continue" on_press={lambda { step = INTRO; }}/>
+                    </View>
+                </Reveal>}
 
-                {key == "fit" and <View style={styles.card}>
-                    <Text style={styles.label}>I SHOP IN</Text>
-                    <View style={styles.optionWrap}>{[<OptionPill key={x} label={x} active={shop_section == x} on_press={lambda { shop_section = "" if shop_section == x else x; }}/> for x in options["sections"]]}</View>
+                {step == INTRO and <Reveal key="intro" grow={True}>
+                    <View style={styles.hero}>
+                        <Text style={styles.lead}>First of all, what should we call you?</Text>
+                        <TextInput style={[styles.input, {"alignSelf": "stretch", "textAlign": "center"}]} value={user_name} placeholder="Your name" placeholderTextColor={C["copySoft"]} autoCapitalize="words" autoCorrect={False} onChangeText={lambda (t: str) { user_name = t; }}/>
+                        <Text style={styles.leadSmall}>Then a couple of questions to get to know your style…</Text>
+                    </View>
+                    <View style={styles.footer}>
+                        <PillButton label="Okay!" on_press={lambda { step = FIRST; }}/>
+                    </View>
+                </Reveal>}
 
-                    {labelled_row("HEIGHT", unit_switch("ft / in", "cm", "cm" if height_unit == "cm" else "ft / in", lambda (u: str) { height_unit = "cm" if u == "cm" else "ft"; }))}
-                    {(
-                        <View style={{"flexDirection": "row", "gap": 8, "alignItems": "center"}}>
-                            {number_input(height_cm, "e.g. 168", lambda (t: str) { height_cm = t; })}
-                            <Text style={styles.small}>cm</Text>
+                {is_question and <Reveal key={"q" + str(step)} grow={True}>
+                    <View style={styles.questionBlock}>
+                        <View style={styles.questionRow}>
+                            <Text style={[styles.question, styles.questionIndex]}>{str(number) + "."}</Text>
+                            <Text style={[styles.question, {"flex": 1}]}>{TITLES[key]}</Text>
                         </View>
-                    ) if height_unit == "cm" else (
-                        <View style={{"flexDirection": "row", "gap": 8, "alignItems": "center"}}>
-                            {number_input(height_ft, "5", lambda (t: str) { height_ft = t; })}
-                            <Text style={styles.small}>ft</Text>
-                            {number_input(height_in, "6", lambda (t: str) { height_in = t; })}
-                            <Text style={styles.small}>in</Text>
+                        <View style={styles.questionBody}>
+                            <Text style={styles.hint}>{HINTS[key]}</Text>
+                            {(<Text style={styles.optionalTag}>(Optional)</Text>) if not required else None}
                         </View>
-                    )}
-
-                    {labelled_row("WEIGHT", unit_switch("lb", "kg", weight_unit, lambda (u: str) { weight_unit = u; }))}
-                    <View style={{"flexDirection": "row", "gap": 8, "alignItems": "center"}}>
-                        {number_input(weight_value, "e.g. 61" if weight_unit == "kg" else "e.g. 135", lambda (t: str) { weight_value = t; })}
-                        <Text style={styles.small}>{weight_unit}</Text>
                     </View>
 
-                    <Dropdown label="USUAL TOP SIZE" value={top_size} options={options["letter_sizes"]} on_pick={lambda (v: str) { top_size = v; }} placeholder="Choose a size" hint="The size you reach for most often; brands vary, and that's fine."/>
-                    <Dropdown label="USUAL BOTTOM SIZE" value={bottom_size} options={bottom_values} on_pick={lambda (v: str) { bottom_size = v; }} placeholder="Letter size or waist" hint="Letter size or waist in inches, whichever you know."/>
-                    <Dropdown label="SHOE SIZE (US)" value={shoe_size} options={shoe_values} on_pick={lambda (v: str) { shoe_size = v; }} placeholder="Choose a size"/>
+                    <View style={styles.body}>
+                    {key == "styles" and multi("styles", selected_styles, options["styles"], lambda (v: list[str]) { selected_styles = v; })}
+                    {key == "colors" and multi("colors", selected_colors, options["colors"], lambda (v: list[str]) { selected_colors = v; })}
+                    {key == "occasions" and multi("occasions", selected_occasions, options["occasions"], lambda (v: list[str]) { selected_occasions = v; })}
 
-                    <Pressable onPress={lambda { show_brand_sizes = not show_brand_sizes; }}>
-                        <Text style={styles.link}>{"Hide brand sizes" if show_brand_sizes else "Not sure of your size? Tell us what fits you at a brand you wear"}</Text>
-                    </Pressable>
-                    {(<View style={styles.cardSoft}>
-                        <Text style={styles.small}>Pick a brand you wear a lot and the size that fits you there. The stylist uses it to judge sizing at other brands.</Text>
-                        <View style={styles.optionWrap}>{[<OptionPill key={k} label={k} active={brand_size_kind == k} on_press={lambda { brand_size_kind = k; brand_size_value = ""; }}/> for k in ["Top", "Bottom", "Shoes"]]}</View>
-                        <TextInput style={styles.input} value={brand_size_brand} placeholder="Brand, e.g. Aritzia" placeholderTextColor={C["copySoft"]} onChangeText={lambda (t: str) { brand_size_brand = t; }}/>
-                        <Dropdown label="SIZE THERE" value={brand_size_value} options={brand_size_values} on_pick={lambda (v: str) { brand_size_value = v; }} placeholder="Choose a size"/>
-                        <View style={{"alignSelf": "flex-start"}}><OptionPill label="Add this size" active={False} on_press={lambda { add_brand_size(); }}/></View>
-                        {(<View style={styles.optionWrap}>{[<OptionPill key={b} label={b + "  ✕"} active={True} on_press={lambda { brand_sizes = [v for v in brand_sizes if v != b]; }}/> for b in brand_sizes]}</View>) if brand_sizes else None}
-                    </View>) if show_brand_sizes else None}
-                </View>}
+                    {key == "fit" and <View style={styles.card}>
+                        <Text style={styles.label}>I SHOP IN</Text>
+                        <View style={styles.optionWrap}>{[<OptionPill key={x} label={x} active={shop_section == x} on_press={lambda { shop_section = "" if shop_section == x else x; }}/> for x in options["sections"]]}</View>
 
-                {key == "shape" and <View style={styles.card}>
-                    {labelled_row("MEASURE IN", unit_switch("in", "cm", measure_unit, lambda (u: str) { measure_unit = u; waist = ""; hips = ""; }))}
-                    <Pressable onPress={lambda { show_measure_guide = not show_measure_guide; }}>
-                        <Text style={styles.link}>{"Hide the measuring guide" if show_measure_guide else "How do I measure? (takes a minute with a soft tape)"}</Text>
-                    </Pressable>
-                    {(<View style={styles.cardSoft}>
-                        <Text style={styles.small}>Use a soft tape over light clothing, snug but not tight, and keep it level all the way round.</Text>
-                        <Text style={styles.small}>Waist: around the narrowest part of your torso, usually just above the belly button.</Text>
-                        <Text style={styles.small}>Hips: around the fullest part of your hips and seat, feet together.</Text>
-                        <Text style={styles.small}>No tape? Skip this: your usual sizes already help a lot.</Text>
-                    </View>) if show_measure_guide else None}
-                    <View style={{"flexDirection": "row", "gap": 10}}>
-                        <Dropdown label={"WAIST (" + measure_unit + ")"} value={waist} options={waist_values} on_pick={lambda (v: str) { waist = v; }} placeholder="Pick"/>
-                        <Dropdown label={"HIPS (" + measure_unit + ")"} value={hips} options={hip_values} on_pick={lambda (v: str) { hips = v; }} placeholder="Pick"/>
+                        {labelled_row("HEIGHT", unit_switch("ft / in", "cm", "cm" if height_unit == "cm" else "ft / in", lambda (u: str) { height_unit = "cm" if u == "cm" else "ft"; }))}
+                        {(
+                            <View style={{"flexDirection": "row", "gap": 8, "alignItems": "center"}}>
+                                {number_input(height_cm, "e.g. 168", lambda (t: str) { height_cm = t; })}
+                                <Text style={styles.small}>cm</Text>
+                            </View>
+                        ) if height_unit == "cm" else (
+                            <View style={{"flexDirection": "row", "gap": 8, "alignItems": "center"}}>
+                                {number_input(height_ft, "5", lambda (t: str) { height_ft = t; })}
+                                <Text style={styles.small}>ft</Text>
+                                {number_input(height_in, "6", lambda (t: str) { height_in = t; })}
+                                <Text style={styles.small}>in</Text>
+                            </View>
+                        )}
+
+                        {labelled_row("WEIGHT", unit_switch("lb", "kg", weight_unit, lambda (u: str) { weight_unit = u; }))}
+                        <View style={{"flexDirection": "row", "gap": 8, "alignItems": "center"}}>
+                            {number_input(weight_value, "e.g. 61" if weight_unit == "kg" else "e.g. 135", lambda (t: str) { weight_value = t; })}
+                            <Text style={styles.small}>{weight_unit}</Text>
+                        </View>
+
+                        <Dropdown label="USUAL TOP SIZE" value={top_size} options={options["letter_sizes"]} on_pick={lambda (v: str) { top_size = v; }} placeholder="Choose a size" hint="The size you reach for most often; brands vary, and that's fine."/>
+                        <Dropdown label="USUAL BOTTOM SIZE" value={bottom_size} options={bottom_values} on_pick={lambda (v: str) { bottom_size = v; }} placeholder="Letter size or waist" hint="Letter size or waist in inches, whichever you know."/>
+                        <Dropdown label="SHOE SIZE (US)" value={shoe_size} options={shoe_values} on_pick={lambda (v: str) { shoe_size = v; }} placeholder="Choose a size"/>
+
+                        <Pressable onPress={lambda { show_brand_sizes = not show_brand_sizes; }}>
+                            <Text style={styles.link}>{"Hide brand sizes" if show_brand_sizes else "Not sure of your size? Tell us what fits you at a brand you wear"}</Text>
+                        </Pressable>
+                        {(<View style={styles.cardSoft}>
+                            <Text style={styles.small}>Pick a brand you wear a lot and the size that fits you there. The stylist uses it to judge sizing at other brands.</Text>
+                            <View style={styles.optionWrap}>{[<OptionPill key={k} label={k} active={brand_size_kind == k} on_press={lambda { brand_size_kind = k; brand_size_value = ""; }}/> for k in ["Top", "Bottom", "Shoes"]]}</View>
+                            <TextInput style={styles.input} value={brand_size_brand} placeholder="Brand, e.g. Aritzia" placeholderTextColor={C["copySoft"]} onChangeText={lambda (t: str) { brand_size_brand = t; }}/>
+                            <Dropdown label="SIZE THERE" value={brand_size_value} options={brand_size_values} on_pick={lambda (v: str) { brand_size_value = v; }} placeholder="Choose a size"/>
+                            <View style={{"alignSelf": "flex-start"}}><OptionPill label="Add this size" active={False} on_press={lambda { add_brand_size(); }}/></View>
+                            {(<View style={styles.optionWrap}>{[<OptionPill key={b} label={b + "  ✕"} active={True} on_press={lambda { brand_sizes = [v for v in brand_sizes if v != b]; }}/> for b in brand_sizes]}</View>) if brand_sizes else None}
+                        </View>) if show_brand_sizes else None}
+                    </View>}
+
+                    {key == "shape" and <View style={styles.card}>
+                        {labelled_row("MEASURE IN", unit_switch("in", "cm", measure_unit, lambda (u: str) { measure_unit = u; waist = ""; hips = ""; }))}
+                        <Pressable onPress={lambda { show_measure_guide = not show_measure_guide; }}>
+                            <Text style={styles.link}>{"Hide the measuring guide" if show_measure_guide else "How do I measure? (takes a minute with a soft tape)"}</Text>
+                        </Pressable>
+                        {(<View style={styles.cardSoft}>
+                            <Text style={styles.small}>Use a soft tape over light clothing, snug but not tight, and keep it level all the way round.</Text>
+                            <Text style={styles.small}>Waist: around the narrowest part of your torso, usually just above the belly button.</Text>
+                            <Text style={styles.small}>Hips: around the fullest part of your hips and seat, feet together.</Text>
+                            <Text style={styles.small}>No tape? Skip this: your usual sizes already help a lot.</Text>
+                        </View>) if show_measure_guide else None}
+                        <View style={{"flexDirection": "row", "gap": 10}}>
+                            <Dropdown label={"WAIST (" + measure_unit + ")"} value={waist} options={waist_values} on_pick={lambda (v: str) { waist = v; }} placeholder="Pick"/>
+                            <Dropdown label={"HIPS (" + measure_unit + ")"} value={hips} options={hip_values} on_pick={lambda (v: str) { hips = v; }} placeholder="Pick"/>
+                        </View>
+
+                        <Text style={styles.label}>BODY SHAPE</Text>
+                        <View style={styles.optionWrap}>
+                            {[<OptionPill key={x} label={x} active={body_shape_filter == x} on_press={lambda { body_shape_filter = x; }}/> for x in options["body_shape_filters"]]}
+                        </View>
+                        <View style={{"flexDirection": "row", "flexWrap": "wrap", "gap": 8}}>
+                            {[
+                                <Pressable
+                                    key={choice[0] + "-" + choice[1]}
+                                    style={[styles.shapeCard, {"width": card_width, "padding": 6, "gap": 4}, styles.shapeCardOn if body_shape == choice[1] and body_shape_set in ["", choice[0]] else {}]}
+                                    onPress={lambda {
+                                        picked = body_shape == choice[1] and body_shape_set in ["", choice[0]];
+                                        body_shape = "" if picked else choice[1];
+                                        body_shape_set = "" if picked else choice[0];
+                                    }}
+                                >
+                                    {shape_image(choice[0], choice[1])}
+                                    <Text style={[styles.optionText, {"fontWeight": "bold", "fontSize": 11, "lineHeight": 14, "textAlign": "center"}]}>{choice[1]}</Text>
+                                </Pressable>
+                                for choice in shape_choices
+                            ]}
+                        </View>
+                        {(<View style={styles.cardSoft}>
+                            <Text style={[styles.optionText, {"fontWeight": "bold"}]}>{body_shape}</Text>
+                            <Text style={styles.small}>{SHAPE_HINTS[body_shape]}</Text>
+                        </View>) if body_shape and body_shape in SHAPE_HINTS else None}
+                        <Text style={[styles.small, {"fontSize": 12}]}>Not sure? Pick the closest, or skip.</Text>
+                    </View>}
+
+                    {key == "stores" and <View style={{"gap": 14}}>
+                        {multi("stores", selected_stores, options["stores"] + [s for s in selected_stores if s not in options["stores"]], lambda (v: list[str]) { selected_stores = v; })}
+                        {custom_row("store", store_draft, "Another store you love")}
+                    </View>}
+                    {key == "brands" and <View style={{"gap": 14}}>
+                        {multi("brands", selected_brands, options["brands"] + [b for b in selected_brands if b not in options["brands"]], lambda (v: list[str]) { selected_brands = v; })}
+                        {custom_row("brand", brand_draft, "Another brand you wear")}
+                    </View>}
+                    {key == "inspiration" and <View style={styles.card}>
+                        <Text style={styles.label}>NAME SOMEONE YOU ADMIRE</Text>
+                        <TextInput style={styles.input} value={inspiration} placeholder="e.g. Zendaya, Emma Chamberlain" placeholderTextColor={C["copySoft"]} onChangeText={lambda (t: str) { inspiration = t; }}/>
+                    </View>}
+                    <View style={styles.spacer}/>
+                    <View style={styles.footer}>
+                        <PillButton label={button_label} disabled={not can_continue} on_press={lambda { if can_continue { step = step + 1; } }}/>
+                        {(<Text style={styles.footnote}>{"Pick at least one to continue" if picks == 0 else " "}</Text>) if required else None}
                     </View>
-
-                    <Text style={styles.label}>BODY SHAPE</Text>
-                    <View style={{"flexDirection": "row", "flexWrap": "wrap", "gap": 12}}>
-                        {[
-                            <Pressable key={shape} style={[styles.shapeCard, {"width": card_width}, styles.shapeCardOn if body_shape == shape else {}]} onPress={lambda { body_shape = "" if body_shape == shape else shape; }}>
-                                <Image source={{"uri": BODY_SHAPE_IMAGES[shape]}} style={{"width": card_width - 20, "height": 170}} resizeMode="contain"/>
-                                <Text style={[styles.optionText, {"fontWeight": "bold"}]}>{shape}</Text>
-                                <Text style={[styles.small, {"textAlign": "center", "fontSize": 12}]}>{SHAPE_HINTS[shape]}</Text>
-                            </Pressable>
-                            for shape in options["body_shapes"]
-                        ]}
                     </View>
-                    <Text style={[styles.small, {"fontSize": 12}]}>{"Not sure? Pick the closest, or skip. " + BODY_SHAPE_CREDIT}</Text>
-                </View>}
+                </Reveal>}
 
-                {key == "stores" and <View style={{"gap": 14}}>
-                    {multi("stores", selected_stores, options["stores"] + [s for s in selected_stores if s not in options["stores"]], lambda (v: list[str]) { selected_stores = v; })}
-                    {custom_row("store", store_draft, "Another store you love")}
-                </View>}
-                {key == "brands" and <View style={{"gap": 14}}>
-                    {multi("brands", selected_brands, options["brands"] + [b for b in selected_brands if b not in options["brands"]], lambda (v: list[str]) { selected_brands = v; })}
-                    {custom_row("brand", brand_draft, "Another brand you wear")}
-                </View>}
-                {key == "inspiration" and <View style={styles.card}>
-                    <Text style={styles.label}>NAME SOMEONE YOU ADMIRE</Text>
-                    <TextInput style={styles.input} value={inspiration} placeholder="e.g. Zendaya, Emma Chamberlain" placeholderTextColor={C["copySoft"]} onChangeText={lambda (t: str) { inspiration = t; }}/>
-                </View>}
-                # MBTI and zodiac question views are intentionally hidden.
-
-                <View style={styles.spacer}/>
-                <View style={styles.footer}>
-                    <PillButton label={button_label} disabled={not can_continue} on_press={lambda { if can_continue { step = step + 1; } }}/>
-                    {(<Text style={styles.footnote}>{"Pick at least one to continue" if picks == 0 else " "}</Text>) if required else None}
-                </View>
-                </View>
-            </Reveal>}
-
-            {step == GENERATING and <Reveal key="generating" grow={True}>
-                <View style={styles.hero}>
-                    <Pulse/>
-                    <View style={{"height": 8}}/>
-                    <Text style={styles.lead}>Generating results…</Text>
-                    <Text style={styles.leadSmall}>This might take a couple seconds</Text>
-                </View>
-            </Reveal>}
-
-            {step == RESULT and <Reveal key="result" grow={True}>
-                <View style={{"gap": 14, "alignItems": "center", "paddingTop": 10}}>
-                    <Text style={styles.hint}>We think your style is:</Text>
-                    <Text style={styles.resultName}>{result_name}</Text>
-                    <Text style={styles.resultCopy}>{result_copy}</Text>
-                    <Text style={[styles.headlineSmall, {"marginTop": 12}]}>Your color palette</Text>
-                    <View style={styles.swatches}>{[<View key={pair[0]} style={[styles.swatch, {"backgroundColor": pair[1]}]}/> for pair in indexed(result_palette)]}</View>
-                </View>
-                <View style={styles.spacer}/>
-                <View style={styles.footer}>
-                    <Text style={styles.hint}>Ready to plan outfits?</Text>
-                    <PillButton label="Let's go!" on_press={lambda { step = WELCOME; }}/>
-                    <Text style={[styles.hint, {"marginTop": 14}]}>Do you disagree with the results?</Text>
-                    <View style={{"flexDirection": "row", "gap": 12, "justifyContent": "center"}}>
-                        <PillButton label="Take quiz again" small={True} arrow={False} on_press={lambda { step = FIRST; }}/>
-                        <PillButton label="Describe my style" small={True} arrow={False} on_press={lambda { step = DESCRIBE; }}/>
+                {step == GENERATING and <Reveal key="generating" grow={True}>
+                    <View style={styles.hero}>
+                        <Pulse/>
+                        <View style={{"height": 8}}/>
+                        <Text style={styles.lead}>Generating results…</Text>
+                        <Text style={styles.leadSmall}>This might take a couple seconds</Text>
                     </View>
-                </View>
-            </Reveal>}
+                </Reveal>}
 
-            {step == DESCRIBE and <Reveal key="describe" grow={True}>
-                <View style={{"gap": 16, "alignItems": "center", "paddingTop": 24}}>
-                    <Text style={styles.headline}>Describe your style in words</Text>
-                    <Text style={styles.resultCopy}>Include information like what colors you like, if you prefer casual or formal, if you wear a lot of accessories, etc.</Text>
-                    <TextInput
-                        style={[styles.textArea, {"width": "100%"}]}
-                        value={style_notes}
-                        placeholder="Write here…"
-                        placeholderTextColor={C["copySoft"]}
-                        multiline={True}
-                        numberOfLines={6}
-                        onChangeText={lambda (t: str) { style_notes = t; }}
-                    />
-                </View>
-                <View style={styles.footer}>
-                    <PillButton label="Done!" arrow={False} disabled={not style_notes.strip()} on_press={lambda { if style_notes.strip() { step = GENERATING; } }}/>
-                </View>
-            </Reveal>}
+                {step == RESULT and <Reveal key="result" grow={True}>
+                    <View style={{"gap": 14, "alignItems": "center", "paddingTop": 10}}>
+                        <Text style={styles.hint}>We think your style is:</Text>
+                        <Text style={styles.resultName}>{result_name}</Text>
+                        <Text style={styles.resultCopy}>{result_copy}</Text>
+                        <Text style={[styles.headlineSmall, {"marginTop": 12}]}>Your color palette</Text>
+                        <View style={styles.swatches}>{[<View key={pair[0]} style={[styles.swatch, {"backgroundColor": pair[1]}]}/> for pair in indexed(result_palette)]}</View>
+                    </View>
+                    <View style={styles.spacer}/>
+                    <View style={styles.footer}>
+                        <Text style={styles.hint}>Ready to plan outfits?</Text>
+                        <PillButton label="Let's go!" on_press={lambda { step = WELCOME; }}/>
+                        <Text style={[styles.hint, {"marginTop": 14}]}>Do you disagree with the results?</Text>
+                        <View style={{"flexDirection": "row", "gap": 12, "justifyContent": "center"}}>
+                            <PillButton label="Take quiz again" small={True} arrow={False} on_press={lambda { step = FIRST; }}/>
+                            <PillButton label="Describe my style" small={True} arrow={False} on_press={lambda { step = DESCRIBE; }}/>
+                        </View>
+                    </View>
+                </Reveal>}
 
-            {step == WELCOME and <Reveal key="welcome" grow={True} delay={150}>
-                <View style={styles.hero}>
-                    <Text style={styles.leadSmall}>Welcome to</Text>
-                    <Text style={styles.logoSmall}>tyyli</Text>
-                </View>
-            </Reveal>}
-        </ScrollView>
+                {step == DESCRIBE and <Reveal key="describe" grow={True}>
+                    <View style={{"gap": 16, "alignItems": "center", "paddingTop": 24}}>
+                        <Text style={styles.headline}>Describe your style in words</Text>
+                        <Text style={styles.resultCopy}>Include information like what colors you like, if you prefer casual or formal, if you wear a lot of accessories, etc.</Text>
+                        <TextInput
+                            style={[styles.textArea, {"width": "100%"}]}
+                            value={style_notes}
+                            placeholder="Write here…"
+                            placeholderTextColor={C["copySoft"]}
+                            multiline={True}
+                            numberOfLines={6}
+                            onChangeText={lambda (t: str) { style_notes = t; }}
+                        />
+                    </View>
+                    <View style={styles.footer}>
+                        <PillButton label="Done!" arrow={False} disabled={not style_notes.strip()} on_press={lambda { if style_notes.strip() { step = GENERATING; } }}/>
+                    </View>
+                </Reveal>}
+
+                {step == WELCOME and <Reveal key="welcome" grow={True} delay={150}>
+                    <View style={styles.hero}>
+                        <Text style={styles.leadSmall}>Welcome to</Text>
+                        <Text style={styles.logoSmall}>tyyli</Text>
+                    </View>
+                </Reveal>}
+            </ScrollView>
+        </View>
     </View>;
 }

@@ -42,7 +42,12 @@ glob OCCASION_WORDS: dict[str, list[str]] = {
         "pear": ["a-line", "wide leg", "structured shoulder", "boat neck", "statement sleeve"],
         "apple": ["v-neck", "open neckline", "longline", "straight", "structured"],
         "rectangle": ["belted", "peplum", "pleated", "layered", "cropped"],
-        "inverted triangle": ["a-line", "wide leg", "full skirt", "simple top", "straight leg"]
+        "inverted triangle": ["a-line", "wide leg", "full skirt", "simple top", "straight leg"],
+        "trapezoid": ["tailored", "structured", "fitted", "straight leg", "layered"],
+        "triangle": ["structured shoulder", "layered", "dark bottom", "straight leg", "overshirt"],
+        "oval": ["open collar", "vertical", "structured", "straight leg", "monochrome"],
+        "diamond": ["open neckline", "longline", "structured", "straight", "vertical"],
+        "rhomboid": ["tailored", "fitted", "straight leg", "layered", "structured"]
     };
 
 
